@@ -15,12 +15,14 @@
 
 package com.google.wave.api;
 
+import com.google.wave.api.Function.BlipContentFunction;
+import com.google.wave.api.Function.MapFunction;
 import com.google.wave.api.JsonRpcConstant.ParamsProperty;
 import com.google.wave.api.OperationRequest.Parameter;
 import com.google.wave.api.impl.DocumentModifyAction;
+import com.google.wave.api.impl.DocumentModifyQuery;
 import com.google.wave.api.impl.DocumentModifyAction.BundledAnnotation;
 import com.google.wave.api.impl.DocumentModifyAction.ModifyHow;
-import com.google.wave.api.impl.DocumentModifyQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -164,6 +166,7 @@ public class BlipContentRefs implements Iterable<Range> {
 
     int nextIndex = 0;
     Object next = null;
+    List<BlipContent> computed = new ArrayList<BlipContent>();
     List<Element> updatedElements = new ArrayList<Element>();
     boolean useMarkup = false;
 
@@ -188,6 +191,22 @@ public class BlipContentRefs implements Iterable<Range> {
       // Get the next argument.
       if (nextIndex < arguments.length) {
         next = arguments[nextIndex];
+
+        // If the next argument is a function, call the function.
+        if (next instanceof Function) {
+          // Get the matched content.
+          BlipContent source;
+          if (end - start == 1 && blip.getElements().containsKey(start)) {
+            source = blip.getElements().get(start);
+          } else {
+            source = Plaintext.of(blip.getContent().substring(start, end));
+          }
+          // Compute the new content.
+          next = ((Function) next).call(source);
+          if (next instanceof BlipContent) {
+            computed.add((BlipContent) next);
+          }
+        }
         nextIndex = ++nextIndex % arguments.length;
       }
 
@@ -296,7 +315,11 @@ public class BlipContentRefs implements Iterable<Range> {
       case REPLACE:
         values = new ArrayList<String>(arguments.length);
         elements = new ArrayList<Element>(arguments.length);
-        for (Object argument : arguments) {
+        Object[] toBeAdded = arguments;
+        if (arguments[0] instanceof Function) {
+          toBeAdded = computed.toArray();
+        }
+        for (Object argument : toBeAdded) {
           if (argument instanceof Element) {
             elements.add(Element.class.cast(argument));
             values.add(null);
@@ -327,6 +350,17 @@ public class BlipContentRefs implements Iterable<Range> {
   }
 
   /**
+   * Inserts computed contents at the matched positions.
+   *
+   * @param functions the functions to compute the new contents based on the
+   *     matched contents.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs insert(BlipContentFunction... functions) {
+    return insert(null, functions);
+  }
+
+  /**
    * Inserts the given strings at the matched positions.
    *
    * @param arguments the new strings to be inserted.
@@ -346,7 +380,21 @@ public class BlipContentRefs implements Iterable<Range> {
    */
   public BlipContentRefs insert(
       List<BundledAnnotation> bundledAnnotations, BlipContent... arguments) {
-    return execute(ModifyHow.INSERT, bundledAnnotations, (Object[]) arguments);
+    return execute(ModifyHow.INSERT, bundledAnnotations, ((Object[]) arguments));
+  }
+
+  /**
+   * Inserts computed contents at the matched positions.
+   *
+   * @param bundledAnnotations annotations to immediately apply to the inserted
+   *     text.
+   * @param functions the functions to compute the new contents based on the
+   *     matched contents.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs insert(
+      List<BundledAnnotation> bundledAnnotations, BlipContentFunction... functions) {
+    return execute(ModifyHow.INSERT, bundledAnnotations, ((Object[]) functions));
   }
 
   /**
@@ -376,6 +424,17 @@ public class BlipContentRefs implements Iterable<Range> {
   }
 
   /**
+   * Inserts computed contents just after the matched positions.
+   *
+   * @param functions the functions to compute the new contents based on the
+   *     matched contents.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs insertAfter(BlipContentFunction... functions) {
+    return insertAfter(null, functions);
+  }
+
+  /**
    * Inserts the given strings just after the matched positions.
    *
    * @param arguments the new strings to be inserted.
@@ -396,6 +455,20 @@ public class BlipContentRefs implements Iterable<Range> {
   public BlipContentRefs insertAfter(
       List<BundledAnnotation> bundledAnnotations, BlipContent... arguments) {
     return execute(ModifyHow.INSERT_AFTER, bundledAnnotations, (Object[]) arguments);
+  }
+
+  /**
+   * Inserts computed contents just after the matched positions.
+   *
+   * @param bundledAnnotations annotations to immediately apply to the inserted
+   *     text.
+   * @param functions the functions to compute the new contents based on the
+   *     matched contents.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs insertAfter(
+      List<BundledAnnotation> bundledAnnotations, BlipContentFunction... functions) {
+    return execute(ModifyHow.INSERT_AFTER, bundledAnnotations, (Object[]) functions);
   }
 
   /**
@@ -426,6 +499,16 @@ public class BlipContentRefs implements Iterable<Range> {
   }
 
   /**
+   * Replaces the matched positions with computed contents.
+   *
+   * @param functions the functions to compute the new contents.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs replace(BlipContentFunction... functions) {
+    return replace(null, functions);
+  }
+
+  /**
    * Replaces the matched positions with the given strings.
    *
    * @param arguments the new strings to replace the original contents.
@@ -446,6 +529,19 @@ public class BlipContentRefs implements Iterable<Range> {
   public BlipContentRefs replace(
       List<BundledAnnotation> bundledAnnotations, BlipContent... arguments) {
     return execute(ModifyHow.REPLACE, bundledAnnotations, (Object[]) arguments);
+  }
+
+  /**
+   * Replaces the matched positions with computed contents.
+   *
+   * @param bundledAnnotations annotations to immediately apply to the inserted
+   *     text.
+   * @param functions the functions to compute the new contents.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs replace(
+      List<BundledAnnotation> bundledAnnotations, BlipContentFunction... functions) {
+    return execute(ModifyHow.REPLACE, bundledAnnotations, (Object[]) functions);
   }
 
   /**
@@ -520,6 +616,23 @@ public class BlipContentRefs implements Iterable<Range> {
   }
 
   /**
+   * Updates the properties of all elements at the matched positions with
+   * computed properties map.
+   *
+   * Note: The purpose of this overloaded version is because the version that
+   * takes a var-args generates compiler warning due to the way generics and
+   * var-args are implemented in Java. Most of the time, robot only needs to
+   * update one gadget at at time, and it can use this version to avoid the
+   * compiler warning.
+   *
+   * @param function the function to compute the new properties map.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs updateElement(MapFunction function) {
+    return execute(ModifyHow.UPDATE_ELEMENT, null, new Object[] {function});
+  }
+
+  /**
    * Updates the properties of all elements at the matched positions with the
    * given properties maps.
    *
@@ -528,6 +641,17 @@ public class BlipContentRefs implements Iterable<Range> {
    */
   public BlipContentRefs updateElement(Map<String, String>... newProperties) {
     return execute(ModifyHow.UPDATE_ELEMENT, null, (Object[]) newProperties);
+  }
+
+  /**
+   * Updates the properties of all elements at the matched positions with
+   * computed properties maps.
+   *
+   * @param functions an array of function to compute new properties maps.
+   * @return an instance of this blip references, for chaining.
+   */
+  public BlipContentRefs updateElement(MapFunction... functions) {
+    return execute(ModifyHow.UPDATE_ELEMENT, null, (Object[]) functions);
   }
 
   /**

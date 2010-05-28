@@ -103,7 +103,7 @@ public class Wavelet {
    *     proxy.
    */
   Wavelet(WaveId waveId, WaveletId waveletId, String creator, long creationTime,
-      long lastModifiedTime, String title, String rootBlipId, 
+      long lastModifiedTime, String title, String rootBlipId,
       Map<String, String> participantRoles, Set<String> participants,
       Map<String, String> dataDocuments,
       Set<String> tags, Map<String, Blip> blips, OperationQueue operationQueue) {
@@ -380,10 +380,14 @@ public class Wavelet {
    * wavelet by calling {@code setRobotAddress} with the robot's address
    * before calling {@code proxy_for}.
    *
-   * @param proxyForId the id to proxy.
+   * @param proxyForId the id to proxy. Please note that this parameter should
+   *     be properly encoded to ensure that the resulting participant id is
+   *     valid (see {@link Util#checkIsValidProxyForId(String)} for more
+   *     details).
    * @return a shallow copy of this wavelet with the proxying information set.
    */
   public Wavelet proxyFor(String proxyForId) {
+    Util.checkIsValidProxyForId(proxyForId);
     addProxyingParticipant(proxyForId);
     OperationQueue proxiedOperationQueue = operationQueue.proxyFor(proxyForId);
     return new Wavelet(this, proxiedOperationQueue);
@@ -524,7 +528,6 @@ public class Wavelet {
       waveletData.setParticipantRole(participant, role.name());
     }
     waveletData.setParticipants(participants);
-    
 
     // Add data documents.
     Map<String, String> dataDocuments = new HashMap<String, String>();

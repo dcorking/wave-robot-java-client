@@ -45,6 +45,7 @@ public class SmallTests extends TestSuite {
     suite.addTestSuite(ImageTest.class);
     suite.addTestSuite(OperationQueueTest.class);
     suite.addTestSuite(TagsTest.class);
+    suite.addTestSuite(UtilTest.class);
     suite.addTestSuite(WaveletTest.class);
 
     // Add all small tests from com.google.wave.api.event package.

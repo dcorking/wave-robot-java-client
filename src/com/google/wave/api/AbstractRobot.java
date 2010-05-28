@@ -353,7 +353,9 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    * @param waveId the id of the wave.
    * @param waveletId the id of the wavelet.
    * @param proxyForId the proxying information that should be set on the
-   *     operation queue.
+   *     operation queue.  Please note that this parameter should be properly
+   *     encoded to ensure that the resulting participant id is valid
+   *     (see {@link Util#checkIsValidProxyForId(String)} for more details).
    * @return a stub of a wavelet.
    */
   public Wavelet blindWavelet(WaveId waveId, WaveletId waveletId, String proxyForId) {
@@ -376,12 +378,15 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    * @param waveId the id of the wave.
    * @param waveletId the id of the wavelet.
    * @param proxyForId the proxying information that should be set on the
-   *     operation queue.
+   *     operation queue. Please note that this parameter should be properly
+   *     encoded to ensure that the resulting participant id is valid
+   *     (see {@link Util#checkIsValidProxyForId(String)} for more details).
    * @param blips a collection of blips that belong to this wavelet.
    * @return a stub of a wavelet.
    */
   public Wavelet blindWavelet(WaveId waveId, WaveletId waveletId, String proxyForId,
       Map<String, Blip> blips) {
+    Util.checkIsValidProxyForId(proxyForId);
     Map<String, String> roles = new HashMap<String, String>();
     return new Wavelet(waveId, waveletId, null, Collections.<String>emptySet(), roles, blips,
         new OperationQueue(proxyForId));
@@ -426,7 +431,10 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    *     participants will be preserved.
    * @param proxyForId the proxy id that should be used to create the new wave.
    *     If specified, the creator of the wave would be
-   *     robotid+<proxyForId>@appspot.com.
+   *     robotid+<proxyForId>@appspot.com. Please note that this parameter
+   *     should be properly encoded to ensure that the resulting participant id
+   *     is valid (see {@link Util#checkIsValidProxyForId(String)} for more
+   *     details).
    */
   public Wavelet newWave(String domain, Set<String> participants, String proxyForId) {
     return newWave(domain, participants, "", proxyForId);
@@ -452,9 +460,13 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    *     WAVELET_CREATED event is fired as a result of this operation.
    * @param proxyForId the proxy id that should be used to create the new wave.
    *     If specified, the creator of the wave would be
-   *     robotid+<proxyForId>@appspot.com.
+   *     robotid+<proxyForId>@appspot.com. Please note that this parameter
+   *     should be properly encoded to ensure that the resulting participant id
+   *     is valid (see {@link Util#checkIsValidProxyForId(String)} for more
+   *     details).
    */
   public Wavelet newWave(String domain, Set<String> participants, String msg, String proxyForId) {
+    Util.checkIsValidProxyForId(proxyForId);
     return new OperationQueue(proxyForId).createWavelet(domain, participants, msg);
   }
 
@@ -478,7 +490,10 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    *     WAVELET_CREATED event is fired as a result of this operation.
    * @param proxyForId the proxy id that should be used to create the new wave.
    *     If specified, the creator of the wave would be
-   *     robotid+<proxyForId>@appspot.com.
+   *     robotid+<proxyForId>@appspot.com. Please note that this parameter
+   *     should be properly encoded to ensure that the resulting participant id
+   *     is valid (see {@link Util#checkIsValidProxyForId(String)} for more
+   *     details).
    * @param rpcServerUrl if specified, this operation will be submitted
    *     immediately to this active gateway, that will return immediately the
    *     actual wave id, the id of the root wavelet, and id of the root blip.
@@ -488,6 +503,7 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    */
   public Wavelet newWave(String domain, Set<String> participants, String msg, String proxyForId,
       String rpcServerUrl) throws IOException {
+    Util.checkIsValidProxyForId(proxyForId);
     OperationQueue opQueue = new OperationQueue(proxyForId);
     Wavelet newWavelet = opQueue.createWavelet(domain, participants, msg);
 
@@ -549,12 +565,16 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    * @param waveId the id of the wave to fetch.
    * @param waveletId the id of the wavelet to fetch.
    * @param proxyForId the proxy id that should be used to fetch this wavelet.
+   *     Please note that this parameter should be properly encoded to ensure
+   *     that the resulting participant id is valid (see
+   *     {@link Util#checkIsValidProxyForId(String)} for more details).
    * @param rpcServerUrl the active gateway that is used to fetch the wavelet.
    *
    * @throws IOException if there is a problem fetching the wavelet.
    */
   public Wavelet fetchWavelet(WaveId waveId, WaveletId waveletId, String proxyForId,
       String rpcServerUrl) throws IOException {
+    Util.checkIsValidProxyForId(proxyForId);
     OperationQueue opQueue = new OperationQueue(proxyForId);
     opQueue.fetchWavelet(waveId, waveletId);
 
@@ -636,28 +656,26 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
   /**
    * Sets the OAuth related properties, including the consumer key and secret
    * that are used to sign the outgoing operations in the active mode. Robot
-   * developer needs to follow the registration process to obtain the key and
-   * secret:
-   * <ul>
-   *   <li>http://wave.google.com/wave/robot/register - for wave preview</li>
-   *   <li>https://wave.google.com/a/wavesandbox.com/robot/register - for
-   *       wave sandbox</li>
-   * </ul>
-   * <br/>
-   * You can call this method multiple times to set up both preview and wave
-   * sandbox.
-   * <br/>
+   * developer needs to visit
+   * {@link "http://wave.google.com/wave/robot/register"} to register and obtain
+   * the consumer key and secret.
+   *
+   * Should you need to make Active API calls to both our public and sandbox
+   * servers from the same robot, you can call this method multiple times, with
+   * the same consumer key and secret, but different RPC server URLs.
+   *
    * After calling this method, the robot no longer accepts unsigned requests,
-   * but if you still want it, you can set
-   * {@link #setAllowUnsignedRequests(boolean)} to {@code true}.
+   * but you can override that by calling
+   * {@link #setAllowUnsignedRequests(boolean)}.
+   *
    * @param consumerKey the consumer key.
    * @param consumerSecret the consumer secret.
    * @param rpcServerUrl the URL of the server that serves the JSON-RPC request.
    *     <ul>
-   *       <li>http://www-opensocial.googleusercontent.com/api/rpc - for wave
+   *       <li>https://www-opensocial.googleusercontent.com/api/rpc - for wave
    *           preview.<li>
-   *       <li>http://www-opensocial-sandbox.googleusercontent.com/api/rpc - for
-   *           wave sandbox.</li>
+   *       <li>https://www-opensocial-sandbox.googleusercontent.com/api/rpc -
+   *           for wave sandbox.</li>
    *     </ul>
    *
    * @throws IllegalArgumentException if any of the arguments are {@code null}.
@@ -683,7 +701,7 @@ public abstract class AbstractRobot extends HttpServlet implements EventHandler 
    */
   protected void setupOAuth(String consumerKey, String consumerSecret) {
     setupOAuth(consumerKey, consumerSecret,
-        "http://www-opensocial.googleusercontent.com/api/rpc");
+        "https://www-opensocial.googleusercontent.com/api/rpc");
   }
 
   /**

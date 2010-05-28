@@ -528,10 +528,14 @@ public class Blip {
    * {@code proxyForId}, i.e. the {@code robot+<proxyForId>@appspot.com} address
    * will be used.
    *
-   * @param proxyForId the id to proxy.
+   * @param proxyForId the id to proxy. Please note that this parameter should
+   *     be properly encoded to ensure that the resulting participant id is
+   *     valid (see {@link Util#checkIsValidProxyForId(String)} for more
+   *     details).
    * @return a shallow copy of this blip with the proxying information set.
    */
   public Blip proxyFor(String proxyForId) {
+    Util.checkIsValidProxyForId(proxyForId);
     OperationQueue proxiedOperationQueue = operationQueue.proxyFor(proxyForId);
     return new Blip(this, proxiedOperationQueue);
   }
