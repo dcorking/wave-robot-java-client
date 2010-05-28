@@ -110,6 +110,15 @@ public class WaveletTest extends TestCase {
     assertEquals(proxiedQueue, proxiedWavelet.getOperationQueue());
   }
 
+  public void testProxyForShouldFailIfProxyIdIsInvalid() throws Exception {
+    try {
+      wavelet.proxyFor("foo@gmail.com");
+      fail("Should have failed since proxy id is not encoded.");
+    } catch (IllegalArgumentException e) {
+      // Expected.
+    }
+  }
+
   public void testSubmitWith() throws Exception {
     OperationQueue otherOpQueue = mock(OperationQueue.class);
     Set<String> participants = new LinkedHashSet<String>();
@@ -172,7 +181,7 @@ public class WaveletTest extends TestCase {
 
     Set<String> participants = new LinkedHashSet<String>();
     participants.add("foo@bar.com");
-    
+
     Map<String, String> roles = new HashMap<String, String>();
 
     wavelet = new Wavelet(WAVE_ID, WAVELET_ID, "foo@bar.com", 1l, 1l, "Hello world",

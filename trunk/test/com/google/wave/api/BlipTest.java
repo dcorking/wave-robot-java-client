@@ -18,6 +18,8 @@ package com.google.wave.api;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.wave.api.Function.BlipContentFunction;
+import com.google.wave.api.Function.MapFunction;
 import com.google.wave.api.JsonRpcConstant.ParamsProperty;
 import com.google.wave.api.impl.DocumentModifyAction;
 import com.google.wave.api.impl.DocumentModifyAction.BundledAnnotation;
@@ -103,6 +105,17 @@ public class BlipTest extends TestCase {
 
     blip.at(3).insert(" ");
     assertTrue(blip.getContent().startsWith("\nho la jupiter!"));
+
+    blip.all().delete();
+    blip.at(1).insert("world!");
+
+    blip.first("world").insert(new BlipContentFunction() {
+      @Override
+      public BlipContent call(BlipContent source) {
+        return Plaintext.of("Hello " + source.getText().length() + " ");
+      }
+    });
+    assertEquals("\nHello 5 world!", blip.getContent());
   }
 
   public void testElementHandling() throws Exception {
@@ -135,6 +148,56 @@ public class BlipTest extends TestCase {
     element = blip.at(1).value().asElement();
     assertTrue(element instanceof Image);
     assertEquals("Yet another cool pix.", ((Image) element).getCaption());
+
+    blip.all().delete();
+    blip.append(new Image(url, 100, 100, "Cool pix."));
+    blip.append(" some piece of text.");
+    assertEquals("\n  some piece of text.", blip.getContent());
+    assertEquals(url, ((Image) blip.first(ElementType.IMAGE).value()).getUrl());
+    blip.first(ElementType.IMAGE).insertAfter(new BlipContentFunction() {
+      @Override
+      public BlipContent call(BlipContent source) {
+        Image matchedImage = (Image) source;
+        return Plaintext.of(matchedImage.getUrl());
+      }
+    });
+    assertEquals("\n " + url + " some piece of text.", blip.getContent());
+
+    blip.all().delete();
+    blip.append(new Image(url, 100, 100, "Cool pix."));
+    blip.append(" some piece of text.");
+    assertEquals("\n  some piece of text.", blip.getContent());
+    assertEquals(url, ((Image) blip.first(ElementType.IMAGE).value()).getUrl());
+    blip.first(ElementType.IMAGE).replace(new BlipContentFunction() {
+      @Override
+      public BlipContent call(BlipContent source) {
+        Image matchedImage = (Image) source;
+        return new Image(matchedImage.getUrl() + "?query=foo", matchedImage.getWidth(),
+            matchedImage.getHeight(), matchedImage.getCaption());
+      }
+    });
+    assertEquals(url + "?query=foo", ((Image) blip.first(ElementType.IMAGE).value()).getUrl());
+  }
+
+  public void testUpdateElement() throws Exception {
+    Blip blip = newBlip(ROOT_BLIP_ID, Arrays.asList(CHILD_BLIP_ID), null);
+    String url = "http://www.test.com/image.png";
+    blip.append(new Image(url, 100, 100, "Cool pix."));
+    assertEquals(2, blip.getElements().size());
+
+    // Update the image by appending a query param to the URL.
+    blip.first(ElementType.IMAGE).updateElement(new MapFunction() {
+      @Override
+      public Map<String, String> call(BlipContent source) {
+        Image matchedImage = (Image) source;
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("url", matchedImage.getUrl() + "?version=newversion");
+        return properties;
+      }
+    });
+
+    Image image = (Image) blip.first(ElementType.IMAGE).value();
+    assertEquals(url + "?version=newversion", image.getUrl());
   }
 
   public void testAnnotationHandling() throws Exception {
@@ -244,6 +307,15 @@ public class BlipTest extends TestCase {
     List<OperationRequest> pendingOps = proxiedBlip.getOperationQueue().getPendingOperations();
     assertEquals(1, pendingOps.size());
     assertEquals("proxyuser", pendingOps.get(0).getParameter(ParamsProperty.PROXYING_FOR));
+  }
+
+  public void testProxyForShouldFailIfProxyIdIsInvalid() throws Exception {
+    try {
+      newBlip(ROOT_BLIP_ID, Arrays.asList(CHILD_BLIP_ID), null).proxyFor("foo@bar.com");
+      fail("Should have failed since proxy id is not encoded.");
+    } catch (IllegalArgumentException e) {
+      // Expected.
+    }
   }
 
   @SuppressWarnings("unchecked")

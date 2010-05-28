@@ -33,8 +33,8 @@ import com.google.wave.api.OperationRequest.Parameter;
 import com.google.wave.api.event.BlipContributorsChangedEvent;
 import com.google.wave.api.event.BlipSubmittedEvent;
 import com.google.wave.api.event.DocumentChangedEvent;
-import com.google.wave.api.event.WaveletTagsChangedEvent;
 import com.google.wave.api.event.EventType;
+import com.google.wave.api.event.WaveletTagsChangedEvent;
 import com.google.wave.api.impl.EventMessageBundle;
 import com.google.wave.api.impl.GsonFactory;
 import com.google.wave.api.impl.WaveletData;
@@ -301,6 +301,15 @@ public class AbstractRobotTest extends TestCase {
     assertEquals(1, ops.size());
     assertEquals(OperationType.WAVELET_APPEND_BLIP.method(), ops.get(0).getMethod());
     assertEquals("proxyid", ops.get(0).getParameter(ParamsProperty.PROXYING_FOR));
+
+    // Assert that proxy id should be valid.
+    try {
+      robot.blindWavelet(WaveId.deserialise("test.com!wave1"),
+          WaveletId.deserialise("test.com!wavelet1"), "foo@bar.com");
+      fail("Should have failed since proxy id is not valid.");
+    } catch (IllegalArgumentException e) {
+      // Expected.
+    }
   }
 
   private HttpServletRequest makeMockRequest(String path, BufferedReader reader)
