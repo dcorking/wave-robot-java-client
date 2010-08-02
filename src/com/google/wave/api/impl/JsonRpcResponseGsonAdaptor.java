@@ -23,7 +23,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
-import com.google.wave.api.BlipData;
 import com.google.wave.api.JsonRpcResponse;
 import com.google.wave.api.JsonRpcConstant.ParamsProperty;
 import com.google.wave.api.JsonRpcConstant.ResponseProperty;
@@ -66,8 +65,9 @@ public class JsonRpcResponseGsonAdaptor implements JsonDeserializer<JsonRpcRespo
         }
         Object object = null;
         if (parameterType == ParamsProperty.BLIPS) {
-          Type blipMapType = new TypeToken<Map<String, BlipData>>(){}.getType();
-          object = context.deserialize(parameter.getValue(), blipMapType);
+          object = context.deserialize(parameter.getValue(), GsonFactory.BLIP_MAP_TYPE);
+        } else if (parameterType == ParamsProperty.THREADS) {
+          object = context.deserialize(parameter.getValue(), GsonFactory.THREAD_MAP_TYPE);
         } else {
           object = context.deserialize(parameter.getValue(), parameterType.clazz());
         }

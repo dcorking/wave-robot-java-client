@@ -15,6 +15,7 @@
 
 package com.google.wave.api;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -25,7 +26,7 @@ import java.util.Map.Entry;
  * data document related operations, such as, getting, setting, or removing
  * data document value from a wavelet.
  */
-public class DataDocuments implements Iterable<Entry<String,String>> {
+public class DataDocuments implements Iterable<Entry<String,String>>, Serializable {
 
   /** A map of data documents values. */
   private final Map<String, String> dataDocuments;

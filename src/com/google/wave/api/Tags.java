@@ -15,6 +15,7 @@
 
 package com.google.wave.api;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -24,7 +25,7 @@ import java.util.Set;
  * A class that represents wavelet's tags. This class supports various
  * tag related operations, such as, adding or removing tag from a wavelet.
  */
-public class Tags implements Iterable<String> {
+public class Tags implements Iterable<String>, Serializable {
 
   /** A set of string that represents wavelet tags. */
   private final Set<String> tags;

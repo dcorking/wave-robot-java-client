@@ -20,16 +20,20 @@ import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.InstanceCreator;
+import com.google.gson.reflect.TypeToken;
 import com.google.wave.api.Annotation;
 import com.google.wave.api.Attachment;
+import com.google.wave.api.BlipData;
 import com.google.wave.api.Element;
 import com.google.wave.api.JsonRpcResponse;
 import com.google.wave.api.NonJsonSerializable;
 import com.google.wave.api.OperationRequest;
 import com.google.wave.api.Range;
+import com.google.wave.api.BlipThread;
 
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -39,13 +43,21 @@ import java.util.Map.Entry;
  * as data transfer objects.
  */
 public class GsonFactory {
-  
+
+  public static final Type BLIP_MAP_TYPE = new TypeToken<Map<String, BlipData>>(){}.getType();
+  public static final Type THREAD_MAP_TYPE = new TypeToken<Map<String, BlipThread>>(){}.getType();
+  public static final Type STRING_MAP_TYPE = new TypeToken<Map<String, String>>(){}.getType();
+  public static final Type OPERATION_REQUEST_LIST_TYPE = new TypeToken<List<OperationRequest>>(){}
+      .getType();
+  public static final Type JSON_RPC_RESPONSE_LIST_TYPE = new TypeToken<List<JsonRpcResponse>>(){}
+      .getType();
+
   /** Additional type adapters. */
   private final Map<Type, Object> customTypeAdapters = new LinkedHashMap<Type, Object>();
 
   /**
    * Registers a custom type adapter.
-   * 
+   *
    * @param type the type that will be handled by the given adapter.
    * @param typeAdapter the adapter that performs the serialization and
    *     deserialization.
@@ -53,7 +65,7 @@ public class GsonFactory {
   public void registerTypeAdapter(Type type, Object typeAdapter) {
     customTypeAdapters.put(type, typeAdapter);
   }
-  
+
   /**
    * Creates a {@link Gson} instance, with additional type adapters for these
    * types:
@@ -93,13 +105,14 @@ public class GsonFactory {
         .registerTypeAdapter(Attachment.class, elementGsonAdaptor)
         .registerTypeAdapter(JsonRpcResponse.class, new JsonRpcResponseGsonAdaptor())
         .registerTypeAdapter(Annotation.class, new AnnotationInstanceCreator())
-        .registerTypeAdapter(Range.class, new RangeInstanceCreator());
-    
+        .registerTypeAdapter(Range.class, new RangeInstanceCreator())
+        .registerTypeAdapter(BlipThread.class, new ThreadInstanceCreator());
+
     // Register custom type adapters.
     for (Entry<Type, Object> entry : customTypeAdapters.entrySet()) {
       builder.registerTypeAdapter(entry.getKey(), entry.getValue());
     }
-    
+
     return builder.serializeNulls().create();
   }
 
@@ -137,6 +150,16 @@ public class GsonFactory {
     @Override
     public Range createInstance(Type type) {
       return new Range(-1, -1);
+    }
+  }
+
+  /**
+   * An instance creator that creates an empty {@link BlipThread}.
+   */
+  private static class ThreadInstanceCreator implements InstanceCreator<BlipThread> {
+    @Override
+    public BlipThread createInstance(Type type) {
+      return new BlipThread(null, -1, null, null);
     }
   }
 }

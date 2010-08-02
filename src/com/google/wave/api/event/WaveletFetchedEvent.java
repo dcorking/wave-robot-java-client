@@ -16,6 +16,7 @@
 package com.google.wave.api.event;
 
 import com.google.wave.api.BlipData;
+import com.google.wave.api.BlipThread;
 import com.google.wave.api.Wavelet;
 import com.google.wave.api.impl.EventMessageBundle;
 import com.google.wave.api.impl.WaveletData;
@@ -38,6 +39,9 @@ public class WaveletFetchedEvent extends AbstractEvent {
   /** The blips that are associated with the fetched wavelet. */
   private final Map<String, BlipData> blips;
 
+  /** The threads that are associated with the fetched wavelet. */
+  private final Map<String, BlipThread> threads;
+
   /**
    * Constructor.
    *
@@ -50,14 +54,16 @@ public class WaveletFetchedEvent extends AbstractEvent {
    * @param rootBlipId the root blip id of the wavelet where this event occurs.
    * @param waveletData the wavelet data of the fetched wavelet.
    * @param blips the blips of the fetched wavelet.
+   * @param threads the threads of the fetched wavelet.
    */
   public WaveletFetchedEvent(Wavelet wavelet, EventMessageBundle bundle, String modifiedBy,
       Long timestamp, String message, String rootBlipId, WaveletData waveletData,
-      Map<String, BlipData> blips) {
+      Map<String, BlipData> blips, Map<String, BlipThread> threads) {
     super(EventType.WAVELET_FETCHED, wavelet, bundle, modifiedBy, timestamp, rootBlipId);
     this.message = message;
     this.waveletData = waveletData;
     this.blips = blips;
+    this.threads = threads;
   }
 
   /**
@@ -67,6 +73,7 @@ public class WaveletFetchedEvent extends AbstractEvent {
     this.message = null;
     this.waveletData = null;
     this.blips = null;
+    this.threads = null;
   }
 
   /**
@@ -96,6 +103,16 @@ public class WaveletFetchedEvent extends AbstractEvent {
    */
   public Map<String, BlipData> getBlips() {
     return blips;
+  }
+
+  /**
+   * Returns the threads that are associated with the fetched wavelet.
+   *
+   * @return a map of {@link BlipThread} that are associated with the fetched
+   *     wavelet.
+   */
+  public Map<String, BlipThread> getThreads() {
+    return threads;
   }
 
   /**

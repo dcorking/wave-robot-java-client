@@ -15,13 +15,15 @@
 
 package com.google.wave.api;
 
+import java.io.Serializable;
+
 /**
  * An abstract class that models a blip content.
  *
  * @see Element
  * @see Plaintext
  */
-public abstract class BlipContent {
+public abstract class BlipContent implements Serializable {
 
   /**
    * Returns the textual representation of of this blip content, for example,

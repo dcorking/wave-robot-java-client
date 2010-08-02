@@ -19,7 +19,9 @@ package com.google.wave.api;
 import org.waveprotocol.wave.model.id.WaveId;
 import org.waveprotocol.wave.model.id.WaveletId;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -34,7 +36,7 @@ import java.util.regex.Pattern;
  * Blips are essentially the documents that make up a conversation, that contain
  * annotations, content and elements.
  */
-public class Blip {
+public class Blip implements Serializable {
 
   /** The property key for blip id in an inline blip element. */
   private static final String INLINE_BLIP_ELEMENT_ID_KEY = "id";
@@ -45,17 +47,20 @@ public class Blip {
   /** The id of this blip. */
   private final String blipId;
 
-  /** The id of the wave that owns this blip. */
-  private final WaveId waveId;
-
-  /** The id of the wavelet that owns this blip. */
-  private final WaveletId waveletId;
-
-  /** The id of the parent blip, {@code null} for a root blip. */
+  /** The id of the parent blip, {@code null} for blips in the root thread. */
   private final String parentBlipId;
+
+  /** The containing thread. */
+  private final BlipThread thread;
 
   /** The ids of the children of this blip. */
   private final List<String> childBlipIds;
+
+  /** The inline reply threads, sorted by location/offset. */
+  private SortedMap<Integer, BlipThread> inlineReplyThreads;
+
+  /** The reply threads. */
+  private final List<BlipThread> replyThreads;
 
   /** The participant ids of the contributors of this blip. */
   private final List<String> contributors;
@@ -90,11 +95,14 @@ public class Blip {
    * @param blipId the id of this blip.
    * @param initialContent the initial content of the blip.
    * @param parentBlipId the id of the parent.
+   * @param threadId the id of the containing thread.
    * @param wavelet the wavelet that owns this blip.
    */
-  Blip(String blipId, String initialContent, String parentBlipId, Wavelet wavelet) {
+  Blip(String blipId, String initialContent, String parentBlipId, String threadId,
+      Wavelet wavelet) {
     this(blipId, new ArrayList<String>(), initialContent, new ArrayList<String>(), null, -1, -1,
-        parentBlipId, new ArrayList<Annotation>(), new TreeMap<Integer, Element>(), wavelet);
+        parentBlipId, threadId, new ArrayList<Annotation>(), new TreeMap<Integer, Element>(),
+        new ArrayList<String>(), wavelet);
 
     // Make sure that initial content is valid, and starts with newline.
     if (this.content == null || this.content.isEmpty()) {
@@ -115,16 +123,17 @@ public class Blip {
    * @param lastModifiedTime the last modified time of this blip.
    * @param version the version of this blip.
    * @param parentBlipId the id of the parent of this blip.
+   * @param threadId the id of the parent thread of this blip.
    * @param annotations the list of annotations for this blip's content.
    * @param elements the element contents of this blip.
+   * @param replyThreadIds the ids of this blip's reply threads.
    * @param wavelet the wavelet that owns this blip.
    */
   Blip(String blipId, List<String> childBlipIds, String content, List<String> contributors,
-      String creator, long lastModifiedTime, long version, String parentBlipId,
-      List<Annotation> annotations, Map<Integer, Element> elements, Wavelet wavelet) {
+      String creator, long lastModifiedTime, long version, String parentBlipId, String threadId,
+      List<Annotation> annotations, Map<Integer, Element> elements, List<String> replyThreadIds,
+      Wavelet wavelet) {
     this.blipId = blipId;
-    this.waveId = wavelet.getWaveId();
-    this.waveletId = wavelet.getWaveletId();
     this.content = content;
     this.childBlipIds = new ArrayList<String>(childBlipIds);
     this.contributors = new ArrayList<String>(contributors);
@@ -132,6 +141,7 @@ public class Blip {
     this.lastModifiedTime = lastModifiedTime;
     this.version = version;
     this.parentBlipId = parentBlipId;
+    this.thread = wavelet.getThread(threadId);
 
     this.annotations = new Annotations();
     for (Annotation annotation : annotations) {
@@ -142,6 +152,18 @@ public class Blip {
     this.elements = new TreeMap<Integer, Element>(elements);
     this.wavelet = wavelet;
     this.operationQueue = wavelet.getOperationQueue();
+
+    // Populate reply threads.
+    this.inlineReplyThreads = new TreeMap<Integer, BlipThread>();
+    this.replyThreads = new ArrayList<BlipThread>();
+    for (String replyThreadId : replyThreadIds) {
+      BlipThread thread = wavelet.getThread(replyThreadId);
+      if (thread.getLocation() != -1) {
+        inlineReplyThreads.put(thread.getLocation(), thread);
+      } else {
+        replyThreads.add(thread);
+      }
+    }
   }
 
   /**
@@ -152,15 +174,16 @@ public class Blip {
    */
   private Blip(Blip other, OperationQueue operationQueue) {
     this.blipId = other.blipId;
-    this.waveId = other.waveId;
-    this.waveletId = other.waveletId;
     this.childBlipIds = other.childBlipIds;
+    this.inlineReplyThreads = other.inlineReplyThreads;
+    this.replyThreads = other.replyThreads;
     this.content = other.content;
     this.contributors = other.contributors;
     this.creator = other.creator;
     this.lastModifiedTime = other.lastModifiedTime;
     this.version = other.version;
     this.parentBlipId = other.parentBlipId;
+    this.thread = other.thread;
     this.annotations = other.annotations;
     this.elements = other.elements;
     this.wavelet = other.wavelet;
@@ -182,7 +205,7 @@ public class Blip {
    * @return the wave id.
    */
   public WaveId getWaveId() {
-    return waveId;
+    return wavelet.getWaveId();
   }
 
   /**
@@ -191,7 +214,7 @@ public class Blip {
    * @return the wavelet id.
    */
   public WaveletId getWaveletId() {
-    return waveletId;
+    return wavelet.getWaveletId();
   }
 
   /**
@@ -217,6 +240,20 @@ public class Blip {
       }
     }
     return result;
+  }
+
+  /**
+   * @return the inline reply threads of this blip, sorted by the offset.
+   */
+  public Collection<BlipThread> getInlineReplyThreads() {
+    return inlineReplyThreads.values();
+  }
+
+  /**
+   * @return the reply threads of this blip.
+   */
+  public Collection<BlipThread> getReplyThreads() {
+    return replyThreads;
   }
 
   /**
@@ -256,7 +293,8 @@ public class Blip {
   }
 
   /**
-   * Returns the id of this blip's parent. {@code null} if this is a root blip.
+   * Returns the id of this blip's parent, or {@code null} if this blip is in
+   * the root thread.
    *
    * @return the blip's parent's id.
    */
@@ -277,13 +315,20 @@ public class Blip {
   }
 
   /**
+   * @return the containing thread.
+   */
+  public BlipThread getThread() {
+    return thread;
+  }
+
+  /**
    * Checks whether this is a root blip or not.
    *
    * @return {@code true} if this is a root blip, denoted by {@code null} parent
    *     id.
    */
   public boolean isRoot() {
-    return parentBlipId == null;
+    return blipId.equals(wavelet.getRootBlipId());
   }
 
   /**
@@ -485,6 +530,16 @@ public class Blip {
   }
 
   /**
+   * Continues the containing thread of this blip..
+   *
+   * @return an instance of {@link Blip} that represents a the new continuation
+   *     reply blip.
+   */
+  public Blip continueThread() {
+    return operationQueue.continueThreadOfBlip(this);
+  }
+
+  /**
    * Inserts an inline blip at the given position.
    *
    * @param position the index to insert the inline blip at. This has to be
@@ -497,16 +552,17 @@ public class Blip {
           ". Position has to be greater than 0 and less than or equal to length.");
     }
 
+    // Shift the elements.
+    shift(position, 1);
+    content = content.substring(0, position) + " " + content.substring(position);
+
     // Generate the operation.
     Blip inlineBlip =  operationQueue.insertInlineBlipToDocument(this, position);
 
     // Insert the inline blip element.
     Element element = new Element(ElementType.INLINE_BLIP);
     element.setProperty(INLINE_BLIP_ELEMENT_ID_KEY, inlineBlip.getBlipId());
-    content = content.substring(0, position) + " " + content.substring(position);
-    shift(position, 1);
     elements.put(position, element);
-
     return inlineBlip;
   }
 
@@ -547,7 +603,10 @@ public class Blip {
    *
    * @return the offset of this blip if it is inline, or -1 if it's not inline
    *     or if the parent is not in the context.
+   * @deprecated please use {@code getThread().getLocation()} to get the offset
+   *     of the inline reply thread that contains this blip.
    */
+  @Deprecated
   public int getInlineBlipOffset() {
     Blip parent = getParentBlip();
     if (parent == null) {
@@ -579,6 +638,16 @@ public class Blip {
       newElements.put(element.getKey() + shiftAmount, element.getValue());
     }
     this.elements = newElements;
+
+    SortedMap<Integer, BlipThread> newInlineReplyThreads =
+        new TreeMap<Integer, BlipThread>(inlineReplyThreads.headMap(position));
+    for (Entry<Integer, BlipThread> entry : inlineReplyThreads.tailMap(position).entrySet()) {
+      BlipThread thread = entry.getValue();
+      thread.setLocation(thread.getLocation() + shiftAmount);
+      newInlineReplyThreads.put(thread.getLocation(), thread);
+    }
+    this.inlineReplyThreads = newInlineReplyThreads;
+
     this.annotations.shift(position, shiftAmount);
   }
 
@@ -601,6 +670,32 @@ public class Blip {
    */
   protected void deleteChildBlipId(String childBlipId) {
     this.childBlipIds.remove(childBlipId);
+  }
+
+  /**
+   * Adds the given {@link BlipThread} as a reply or inline reply thread.
+   *
+   * @param thread the new thread to add.
+   */
+  protected void addThread(BlipThread thread) {
+    if (thread.getLocation() == -1) {
+      this.replyThreads.add(thread);
+    } else {
+      this.inlineReplyThreads.put(thread.getLocation(), thread);
+    }
+  }
+
+  /**
+   * Removes the given {@link BlipThread} from the reply or inline reply thread.
+   *
+   * @param thread the new thread to remove.
+   */
+  protected void removeThread(BlipThread thread) {
+    if (thread.getLocation() == -1) {
+      this.replyThreads.remove(thread);
+    } else {
+      this.inlineReplyThreads.remove(thread.getLocation());
+    }
   }
 
   /**
@@ -634,9 +729,10 @@ public class Blip {
 
     // Add primitive properties.
     blipData.setBlipId(blipId);
-    blipData.setWaveId(waveId.serialise());
-    blipData.setWaveletId(waveletId.serialise());
+    blipData.setWaveId(wavelet.getWaveId().serialise());
+    blipData.setWaveletId(wavelet.getWaveletId().serialise());
     blipData.setParentBlipId(parentBlipId);
+    blipData.setThreadId(thread.getId());
     blipData.setCreator(creator);
     blipData.setLastModifiedTime(lastModifiedTime);
     blipData.setVersion(version);
@@ -653,6 +749,17 @@ public class Blip {
       annotations.add(annotation);
     }
     blipData.setAnnotations(annotations);
+
+    // Add reply threads ids.
+    List<String> replyThreadIds = new ArrayList<String>(inlineReplyThreads.size() +
+        replyThreads.size());
+    for (BlipThread thread : inlineReplyThreads.values()) {
+      replyThreadIds.add(thread.getId());
+    }
+    for (BlipThread thread : replyThreads) {
+      replyThreadIds.add(thread.getId());
+    }
+    blipData.setReplyThreadIds(replyThreadIds);
 
     return blipData;
   }
@@ -671,17 +778,23 @@ public class Blip {
     // Extract primitive properties.
     String blipId = blipData.getBlipId();
     String parentBlipId = blipData.getParentBlipId();
+    String threadId = blipData.getThreadId();
     String creator = blipData.getCreator();
     long lastModifiedTime = blipData.getLastModifiedTime();
     long version = blipData.getVersion();
     String content = blipData.getContent();
 
     List<String> childBlipIds = blipData.getChildBlipIds();
+    List<String> replyThreadIds = blipData.getReplyThreadIds();
+    if (replyThreadIds == null) {
+      replyThreadIds = new ArrayList<String>();
+    }
+
     List<String> contributors = blipData.getContributors();
     Map<Integer, Element> elements = blipData.getElements();
 
     List<Annotation> annotations = blipData.getAnnotations();
     return new Blip(blipId, childBlipIds, content, contributors, creator, lastModifiedTime,
-        version, parentBlipId, annotations, elements, wavelet);
+        version, parentBlipId, threadId, annotations, elements, replyThreadIds, wavelet);
   }
 }

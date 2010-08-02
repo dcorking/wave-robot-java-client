@@ -20,6 +20,8 @@ import org.apache.commons.codec.binary.Base64;
 import java.net.URLEncoder;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 /**
  * A class that contains various utility methods.
  */
@@ -72,5 +74,17 @@ public final class Util {
           "proxy id. A valid proxy id may not contain whitespace characters, non-printing" +
           "characters (decimal 0 - 31, and decimal 127), @, :, <, >, and comma.");
     }
+  }
+  
+  /**
+   * Returns {@code true} if the given string is null, empty, or comprises only
+   * whitespace characters.
+   * 
+   * @param string the string reference to check
+   * @return {@code true} if {@code string} is null, empty, or consists of
+   *     whitespace characters only
+   */
+  public static boolean isEmptyOrWhitespace(@Nullable String string) {
+    return string == null || string.matches("\\s*");
   }
 }

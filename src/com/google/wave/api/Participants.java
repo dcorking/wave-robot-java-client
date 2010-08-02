@@ -16,6 +16,7 @@
 package com.google.wave.api;
 
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -26,7 +27,7 @@ import java.util.Set;
  * A class that represents wavelet's participants. This class supports various
  * participant related operations, such as, adding participant to a wavelet.
  */
-public class Participants implements Set<String> {
+public class Participants implements Set<String>, Serializable {
 
   /**
    * Roles to use for the participants

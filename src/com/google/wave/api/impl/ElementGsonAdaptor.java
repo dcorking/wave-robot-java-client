@@ -15,7 +15,6 @@
 
 package com.google.wave.api.impl;
 
-import org.apache.commons.codec.binary.Base64;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -24,7 +23,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.google.gson.reflect.TypeToken;
 import com.google.wave.api.Attachment;
 import com.google.wave.api.Element;
 import com.google.wave.api.ElementType;
@@ -32,6 +30,8 @@ import com.google.wave.api.FormElement;
 import com.google.wave.api.Gadget;
 import com.google.wave.api.Image;
 import com.google.wave.api.Line;
+
+import org.apache.commons.codec.binary.Base64;
 
 import java.lang.reflect.Type;
 import java.util.Map;
@@ -55,9 +55,8 @@ public class ElementGsonAdaptor implements JsonDeserializer<Element>,
     ElementType type = ElementType.valueOfIgnoreCase(
         json.getAsJsonObject().get(TYPE_TAG).getAsString());
 
-    Type mapType = new TypeToken<Map<String, String>>(){}.getType();
     Map<String, String> properties = context.deserialize(
-        json.getAsJsonObject().get(PROPERTIES_TAG), mapType);
+        json.getAsJsonObject().get(PROPERTIES_TAG), GsonFactory.STRING_MAP_TYPE);
 
     if (FormElement.getFormElementTypes().contains(type)) {
       result = new FormElement(type, properties);
@@ -90,7 +89,7 @@ public class ElementGsonAdaptor implements JsonDeserializer<Element>,
       if (attachment.hasData()) {
         String encodedData = Base64.encodeBase64String(attachment.getData());
         properties.add(Attachment.DATA, new JsonPrimitive(encodedData));
-      }      
+      }
     }
     for (Entry<String, String> entry : src.getProperties().entrySet()) {
       // Note: Gson's JsonObject and MapTypeAdapter don't escape the key

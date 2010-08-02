@@ -15,6 +15,8 @@
 
 package com.google.wave.api;
 
+import java.io.Serializable;
+
 
 /**
  * Annotation is an immutable key-value pair of metadata over a range of
@@ -25,7 +27,7 @@ package com.google.wave.api;
  * corrections, and links to refer that area of text to another document or
  * web site.
  */
-public class Annotation {
+public class Annotation implements Serializable {
 
   /** Some constants for style related annotation keys. */
   public static final String BACKGROUND_COLOR = "style/backgroundColor";

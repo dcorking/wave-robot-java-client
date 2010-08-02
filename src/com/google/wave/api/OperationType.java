@@ -41,6 +41,7 @@ public enum OperationType {
   WAVELET_MODIFY_TAG("wavelet.modifyTag"),
   WAVELET_MODIFY_PARTICIPANT_ROLE("wavelet.modifyParticipantRole"),
 
+  BLIP_CONTINUE_THREAD("blip.continueThread"),
   BLIP_CREATE_CHILD("blip.createChild"),
   BLIP_DELETE("blip.delete"),
   BLIP_SET_AUTHOR("blip.setAuthor"),
@@ -73,6 +74,8 @@ public enum OperationType {
   // Some operations not associated with a context
   ROBOT_FOLDER_ACTION("robot.folderAction"),
   ROBOT_CREATE_WAVELET("robot.createWavelet"),
+  ROBOT_FETCH_MY_PROFILE("robot.fetchMyProfile"),
+  ROBOT_FETCH_PROFILES("robot.fetchProfiles"),
   ROBOT_FETCH_WAVE("robot.fetchWave"),
   ROBOT_NOTIFY("robot.notify"),
   ROBOT_SEARCH("robot.search"),
@@ -100,8 +103,7 @@ public enum OperationType {
   @Deprecated DOCUMENT_INLINE_BLIP_INSERT("document.inlineBlip.insert"),
   @Deprecated DOCUMENT_INLINE_BLIP_INSERT_AFTER_ELEMENT("document.inlineBlip.insertAfterElement"),
 
-  @Deprecated ROBOT_NOTIFY_CAPABILITIES_HASH("robot.notifyCapabilitiesHash")
-  ;
+  @Deprecated ROBOT_NOTIFY_CAPABILITIES_HASH("robot.notifyCapabilitiesHash");
 
   private static final Logger LOG = Logger.getLogger(OperationType.class.getName());
 

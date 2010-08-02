@@ -24,11 +24,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.google.gson.reflect.TypeToken;
 import com.google.wave.api.Blip;
 import com.google.wave.api.BlipData;
 import com.google.wave.api.OperationQueue;
 import com.google.wave.api.OperationRequest;
+import com.google.wave.api.BlipThread;
 import com.google.wave.api.Wavelet;
 import com.google.wave.api.event.Event;
 import com.google.wave.api.event.EventSerializationException;
@@ -54,6 +54,7 @@ public class EventMessageBundleGsonAdaptor implements
   public static final String EVENTS_TAG = "events";
   public static final String WAVELET_TAG = "wavelet";
   public static final String BLIPS_TAG = "blips";
+  public static final String THREADS_TAG = "threads";
   private static final String PROXYING_FOR_TAG = "proxyingFor";
   private static final String ROBOT_ADDRESS_TAG = "robotAddress";
   private static final String RPC_SERVER_URL_TAG = "rpcServerUrl";
@@ -80,6 +81,7 @@ public class EventMessageBundleGsonAdaptor implements
 
     result.add(WAVELET_TAG, context.serialize(src.getWaveletData()));
     result.add(BLIPS_TAG, context.serialize(src.getBlipData()));
+    result.add(THREADS_TAG, context.serialize(src.getThreads()));
     result.addProperty(ROBOT_ADDRESS_TAG, src.getRobotAddress());
 
     String proxyingFor = src.getProxyingFor();
@@ -118,13 +120,23 @@ public class EventMessageBundleGsonAdaptor implements
     WaveletData waveletData = context.deserialize(jsonObj.get(WAVELET_TAG), WaveletData.class);
     result.setWaveletData(waveletData);
     Map<String, Blip> blips = new HashMap<String, Blip>();
-    Wavelet wavelet = Wavelet.deserialize(operationQueue, blips, waveletData);
+    Map<String, BlipThread> threads = new HashMap<String, BlipThread>();
+    Wavelet wavelet = Wavelet.deserialize(operationQueue, blips, threads, waveletData);
     wavelet.setRobotAddress(robotAddress);
     result.setWavelet(wavelet);
-    Type blipMapType = new TypeToken<Map<String, BlipData>>(){}.getType();
+
+    // Deserialize threads.
+    Map<String, BlipThread> tempThreads = context.deserialize(jsonObj.get(THREADS_TAG),
+        GsonFactory.THREAD_MAP_TYPE);
+    for (Entry<String, BlipThread> entry : tempThreads.entrySet()) {
+      BlipThread thread = entry.getValue();
+      threads.put(entry.getKey(), new BlipThread(thread.getId(), thread.getLocation(),
+          thread.getBlipIds(), blips));
+    }
 
     // Deserialize blips.
-    Map<String, BlipData> blipDatas = context.deserialize(jsonObj.get(BLIPS_TAG), blipMapType);
+    Map<String, BlipData> blipDatas = context.deserialize(jsonObj.get(BLIPS_TAG),
+        GsonFactory.BLIP_MAP_TYPE);
     result.setBlipData(blipDatas);
     for(Entry<String, BlipData> entry : blipDatas.entrySet()) {
       blips.put(entry.getKey(), Blip.deserialize(operationQueue, wavelet, entry.getValue()));
