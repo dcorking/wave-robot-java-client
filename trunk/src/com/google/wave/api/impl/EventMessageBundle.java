@@ -17,6 +17,7 @@ package com.google.wave.api.impl;
 
 import com.google.wave.api.BlipData;
 import com.google.wave.api.Context;
+import com.google.wave.api.BlipThread;
 import com.google.wave.api.Wavelet;
 import com.google.wave.api.event.Event;
 import com.google.wave.api.event.EventType;
@@ -39,6 +40,7 @@ public class EventMessageBundle {
   private WaveletData waveletData;
   private Wavelet wavelet;
   private Map<String, BlipData> blipData;
+  private Map<String, BlipThread> threads;
   private Map<String, Set<Context>> requiredBlips;
   private String proxyingFor;
   private final String robotAddress;
@@ -50,6 +52,7 @@ public class EventMessageBundle {
     this.rpcServerUrl = rpcServerUrl;
     blipData = new HashMap<String, BlipData>();
     requiredBlips = new HashMap<String, Set<Context>>();
+    threads = new HashMap<String, BlipThread>();
   }
 
   public Map<String, Set<Context>> getRequiredBlips() {
@@ -101,6 +104,10 @@ public class EventMessageBundle {
     return blipData;
   }
 
+  public Map<String, BlipThread> getThreads() {
+    return threads;
+  }
+
   public void setEvents(List<Event> events) {
     this.events = events;
   }
@@ -115,6 +122,10 @@ public class EventMessageBundle {
 
   public void setBlipData(Map<String, BlipData> blipData) {
     this.blipData = blipData;
+  }
+
+  public void setThreads(Map<String, BlipThread> threads) {
+    this.threads = threads;
   }
 
   public void clear() {
@@ -142,6 +153,26 @@ public class EventMessageBundle {
    */
   public void addBlip(String id, BlipData blip) {
     blipData.put(id, blip);
+  }
+
+  /**
+   * Add a thread to the map of threads.
+   *
+   * @param id the thread id.
+   * @param thread the thread to add.
+   */
+  public void addThread(String id, BlipThread thread) {
+    threads.put(id, thread);
+  }
+
+  /**
+   * Check whether a given thread has been added to the thread map or not.
+   *
+   * @param id the id of the thread to check.
+   * @return {@code true} if the map contains the given thread id.
+   */
+  public boolean hasThreadId(String id) {
+    return threads.containsKey(id);
   }
 
   /**

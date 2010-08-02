@@ -15,6 +15,7 @@
 
 package com.google.wave.api;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +37,7 @@ import java.util.Map.Entry;
  * This class is iterable, but the iterator does not support element removal
  * yet.
  */
-public class Annotations implements Iterable<Annotation> {
+public class Annotations implements Iterable<Annotation>, Serializable {
 
   /** A map of annotation name to a list of annotations instances. */
   private final Map<String, List<Annotation>> store = new HashMap<String, List<Annotation>>();

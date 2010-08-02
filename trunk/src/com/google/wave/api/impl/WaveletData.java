@@ -15,6 +15,8 @@
 
 package com.google.wave.api.impl;
 
+import com.google.wave.api.BlipThread;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +42,7 @@ public class WaveletData {
   private String title;
   private String waveId;
   private String waveletId;
+  private BlipThread rootThread;
 
   public WaveletData() {
     // TODO(mprasetya): Please remove this ctor. It is currently being used for
@@ -47,10 +50,11 @@ public class WaveletData {
   }
 
   public WaveletData(String waveId, String waveletId, String rootBlipId,
-      List<String> participants) {
+      BlipThread rootThread) {
     this.waveId = waveId;
     this.waveletId = waveletId;
     this.rootBlipId = rootBlipId;
+    this.rootThread = rootThread;
   }
 
   public WaveletData(WaveletData wavelet) {
@@ -190,5 +194,13 @@ public class WaveletData {
 
   public void setParticipantRole(String participant, String role) {
     participantRoles.put(participant, role);
+  }
+
+  public BlipThread getRootThread() {
+    return rootThread;
+  }
+
+  public void setRootThread(BlipThread rootThread) {
+    this.rootThread = rootThread;
   }
 }

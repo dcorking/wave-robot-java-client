@@ -17,10 +17,10 @@ package com.google.wave.api;
 
 import com.google.wave.api.JsonRpcConstant.ParamsProperty;
 import com.google.wave.api.OperationRequest.Parameter;
-
 import org.waveprotocol.wave.model.id.WaveId;
 import org.waveprotocol.wave.model.id.WaveletId;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +43,7 @@ import java.util.Set;
  * calling wavelet_append_blip will not result in a new blip being added to the
  * robot current context, only an operation to be sent to the robot proxy.
  */
-public class OperationQueue {
+public class OperationQueue implements Serializable {
 
   /** A random number generator for the temporary ids. */
   private static final Random ID_GENERATOR = new Random();
@@ -150,7 +150,8 @@ public class OperationQueue {
    * @return an instance of {@link Blip} that represents the new blip.
    */
   public Blip appendBlipToWavelet(Wavelet wavelet, String initialContent) {
-    Blip newBlip = newBlip(wavelet, initialContent);
+    Blip newBlip = newBlip(wavelet, initialContent, null, generateTempBlipId(wavelet),
+        wavelet.getRootThread().getId());
     appendOperation(OperationType.WAVELET_APPEND_BLIP, wavelet,
         Parameter.of(ParamsProperty.BLIP_DATA, newBlip.serialize()));
     return newBlip;
@@ -255,8 +256,33 @@ public class OperationQueue {
    * @return an instance of {@link Blip} that represents the new child blip.
    */
   public Blip createChildOfBlip(Blip blip) {
-    Blip newBlip = newBlip(blip.getWavelet(), "", blip.getBlipId());
+    // Create a new thread.
+    String tempBlipId = generateTempBlipId(blip.getWavelet());
+    Wavelet wavelet = blip.getWavelet();
+    BlipThread thread = new BlipThread(tempBlipId, -1, new ArrayList<String>(),
+        wavelet.getBlips());
+
+    // Add the new thread to the blip and wavelet.
+    blip.addThread(thread);
+    wavelet.addThread(thread);
+
+    // Create a new blip in the new thread.
+    Blip newBlip = newBlip(blip.getWavelet(), "", blip.getBlipId(), tempBlipId, thread.getId());
     appendOperation(OperationType.BLIP_CREATE_CHILD, blip,
+        Parameter.of(ParamsProperty.BLIP_DATA, newBlip.serialize()));
+    return newBlip;
+  }
+
+  /**
+   * Appends a new blip to the end of the thread of the given blip.
+   *
+   * @param blip the blip whose thread will be appended.
+   * @return an instance of {@link Blip} that represents the new blip.
+   */
+  public Blip continueThreadOfBlip(Blip blip) {
+    Blip newBlip = newBlip(blip.getWavelet(), "", blip.getParentBlipId(),
+        generateTempBlipId(blip.getWavelet()), blip.getThread().getId());
+    appendOperation(OperationType.BLIP_CONTINUE_THREAD, blip,
         Parameter.of(ParamsProperty.BLIP_DATA, newBlip.serialize()));
     return newBlip;
   }
@@ -321,7 +347,19 @@ public class OperationQueue {
    * @return an instance of {@link Blip} that represents the inline blip.
    */
   public Blip insertInlineBlipToDocument(Blip blip, int position) {
-    Blip inlineBlip = newBlip(blip.getWavelet(), "", blip.getBlipId());
+    // Create a new thread.
+    String tempBlipId = generateTempBlipId(blip.getWavelet());
+    Wavelet wavelet = blip.getWavelet();
+    BlipThread thread = new BlipThread(tempBlipId, position, new ArrayList<String>(),
+        wavelet.getBlips());
+
+    // Add the new thread to the blip and wavelet.
+    blip.addThread(thread);
+    wavelet.addThread(thread);
+
+    // Create a new blip in the new thread.
+    Blip inlineBlip = newBlip(blip.getWavelet(), "", blip.getBlipId(), tempBlipId,
+        thread.getId());
     appendOperation(OperationType.DOCUMENT_INSERT_INLINE_BLIP, blip,
         Parameter.of(ParamsProperty.INDEX, position),
         Parameter.of(ParamsProperty.BLIP_DATA, inlineBlip.serialize()));
@@ -451,15 +489,14 @@ public class OperationQueue {
   }
 
   /**
-   * Creates a new {@code Blip} object used for this session. A temporary
-   * id will be assigned to the newly created {@code Blip} object.
+   * Generates a temporary blip id.
    *
-   * @param wavelet the wavelet that owns the new blip.
-   * @param initialContent the initial content of the new blip.
-   * @return an instance of new {@code Blip} object used for this session.
+   * @param wavelet the wavelet to seed the temporary id.
+   * @return a temporary blip id.
    */
-  private static Blip newBlip(Wavelet wavelet, String initialContent) {
-    return newBlip(wavelet, initialContent, null);
+  private static String generateTempBlipId(Wavelet wavelet) {
+    return String.format(TEMP_BLIP_ID_FORMAT, wavelet.getWaveletId().serialise(),
+        ID_GENERATOR.nextInt());
   }
 
   /**
@@ -471,10 +508,9 @@ public class OperationQueue {
    * @param parentBlipId the parent of this blip.
    * @return an instance of new {@code Blip} object used for this session.
    */
-  private static Blip newBlip(Wavelet wavelet, String initialContent, String parentBlipId) {
-    String tempBlipId = String.format(TEMP_BLIP_ID_FORMAT, wavelet.getWaveletId().serialise(),
-        ID_GENERATOR.nextInt());
-    Blip newBlip = new Blip(tempBlipId, initialContent, parentBlipId, wavelet);
+  private static Blip newBlip(Wavelet wavelet, String initialContent, String parentBlipId,
+      String blipId, String threadId) {
+    Blip newBlip = new Blip(blipId, initialContent, parentBlipId, threadId, wavelet);
     if (parentBlipId != null) {
       Blip parentBlip = wavelet.getBlips().get(parentBlipId);
       if (parentBlip != null) {
@@ -482,6 +518,11 @@ public class OperationQueue {
       }
     }
     wavelet.getBlips().put(newBlip.getBlipId(), newBlip);
+
+    BlipThread thread = wavelet.getThread(threadId);
+    if (thread != null) {
+      thread.appendBlip(newBlip);
+    }
     return newBlip;
   }
 
@@ -511,10 +552,16 @@ public class OperationQueue {
         ID_GENERATOR.nextInt());
     Map<String, Blip> blips = new HashMap<String, Blip>();
     Map<String, String> roles = new HashMap<String, String>();
-    Wavelet wavelet = new Wavelet(
-        waveId, waveletId, rootBlipId, participants, roles, blips, opQueue);
+    Map<String, BlipThread> threads = new HashMap<String, BlipThread>();
 
-    Blip rootBlip = new Blip(rootBlipId, "", null, wavelet);
+    List<String> blipIds = new ArrayList<String>();
+    blipIds.add(rootBlipId);
+    BlipThread rootThread = new BlipThread("", -1, blipIds, blips);
+
+    Wavelet wavelet = new Wavelet(waveId, waveletId, rootBlipId, rootThread, participants,
+        roles, blips, threads, opQueue);
+
+    Blip rootBlip = new Blip(rootBlipId, "", null, "", wavelet);
     blips.put(rootBlipId, rootBlip);
 
     return wavelet;
@@ -539,9 +586,9 @@ public class OperationQueue {
    * @param protocolVersion the wire protocol version of the robot.
    * @param capabilitiesHash the capabilities hash of the robot.
    */
-  public void notifyRobotInformation(String protocolVersion, String capabilitiesHash) {
+  public void notifyRobotInformation(ProtocolVersion protocolVersion, String capabilitiesHash) {
     prependOperation(OperationType.ROBOT_NOTIFY_CAPABILITIES_HASH, null, null, null,
-        Parameter.of(ParamsProperty.PROTOCOL_VERSION, protocolVersion),
+        Parameter.of(ParamsProperty.PROTOCOL_VERSION, protocolVersion.getVersionString()),
         Parameter.of(ParamsProperty.CAPABILITIES_HASH, capabilitiesHash));
   }
 }

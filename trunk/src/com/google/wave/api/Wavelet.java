@@ -21,6 +21,10 @@ import com.google.wave.api.impl.WaveletData;
 import org.waveprotocol.wave.model.id.WaveId;
 import org.waveprotocol.wave.model.id.WaveletId;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +42,7 @@ import java.util.Map.Entry;
  * participants, a set of tags, a list of blips, and a data document, which
  * is a map of key-value pairs of data.
  */
-public class Wavelet {
+public class Wavelet implements Serializable {
 
   /** Delimiter constants for robot participant id. */
   private static final char ROBOT_ID_PROXY_DELIMITER = '+';
@@ -46,10 +50,16 @@ public class Wavelet {
   private static final char ROBOT_ID_DOMAIN_DELIMITER = '@';
 
   /** The id of the wave that owns this wavelet. */
-  private final WaveId waveId;
+  private transient WaveId waveId;
 
   /** The id of this wavelet. */
-  private final WaveletId waveletId;
+  private transient WaveletId waveletId;
+
+  /** The serialized form of waveId **/
+  private String serializedWaveId;
+
+  /** The serialized form of waveletId **/
+  private String serializedWaveletId;
 
   /** The participant id that created this wavelet. */
   private final String creator;
@@ -62,6 +72,9 @@ public class Wavelet {
 
   /** The id of the root blip of this wavelet. */
   private final String rootBlipId;
+
+  /** The root thread of this wavelet. */
+  private final BlipThread rootThread;
 
   /** The participants of this wavelet. */
   private final Participants participants;
@@ -77,6 +90,9 @@ public class Wavelet {
 
   /** The blips that are contained in this wavelet. */
   @NonJsonSerializable private final Map<String, Blip> blips;
+
+  /** The conversation threads that are contained in this wavelet. */
+  @NonJsonSerializable private final Map<String, BlipThread> threads;
 
   /** The operation queue to queue operation to the robot proxy. */
   @NonJsonSerializable private OperationQueue operationQueue;
@@ -94,19 +110,21 @@ public class Wavelet {
    * @param lastModifiedTime the last modified time of this wavelet.
    * @param title the title of this wavelet.
    * @param rootBlipId the root blip id of this wavelet.
+   * @param rootThread the root thread of this wavelet.
    * @param participantRoles the roles for those participants
    * @param participants the participants of this wavelet.
    * @param dataDocuments the data documents of this wavelet.
    * @param tags the tags that this wavelet has.
    * @param blips the blips that are contained in this wavelet.
+   * @param threads the conversation threads that are contained in this wavelet.
    * @param operationQueue the operation queue to queue operation to the robot
    *     proxy.
    */
   Wavelet(WaveId waveId, WaveletId waveletId, String creator, long creationTime,
-      long lastModifiedTime, String title, String rootBlipId,
+      long lastModifiedTime, String title, String rootBlipId, BlipThread rootThread,
       Map<String, String> participantRoles, Set<String> participants,
-      Map<String, String> dataDocuments,
-      Set<String> tags, Map<String, Blip> blips, OperationQueue operationQueue) {
+      Map<String, String> dataDocuments, Set<String> tags, Map<String, Blip> blips,
+      Map<String, BlipThread> threads, OperationQueue operationQueue) {
     this.waveId = waveId;
     this.waveletId = waveletId;
     this.creator = creator;
@@ -114,10 +132,12 @@ public class Wavelet {
     this.lastModifiedTime = lastModifiedTime;
     this.title = title;
     this.rootBlipId = rootBlipId;
+    this.rootThread = rootThread;
     this.participants = new Participants(participants, participantRoles, this, operationQueue);
     this.dataDocuments = new DataDocuments(dataDocuments, this, operationQueue);
     this.tags = new Tags(tags, this, operationQueue);
     this.blips = blips;
+    this.threads = threads;
     this.operationQueue = operationQueue;
   }
 
@@ -127,18 +147,21 @@ public class Wavelet {
    * @param waveId the id of the wave that owns this wavelet.
    * @param waveletId the id of this wavelet.
    * @param rootBlipId the root blip id of this wavelet.
+   * @param rootThread the root thread of this wavelet.
    * @param participants the participants of this wavelet.
-   * @param participantRoles the roles for those participants
+   * @param participantRoles the roles for those participants.
    * @param blips the blips that are contained in this wavelet.
+   * @param threads the conversation threads that are contained in this wavelet.
    * @param operationQueue the operation queue to queue operation to the robot
    *     proxy.
    */
-  Wavelet(WaveId waveId, WaveletId waveletId, String rootBlipId, Set<String> participants,
-      Map<String, String> participantRoles, Map<String, Blip> blips,
-      OperationQueue operationQueue) {
+  Wavelet(WaveId waveId, WaveletId waveletId, String rootBlipId, BlipThread rootThread,
+      Set<String> participants, Map<String, String> participantRoles, Map<String, Blip> blips,
+      Map<String, BlipThread> threads, OperationQueue operationQueue) {
     this.waveId = waveId;
     this.waveletId = waveletId;
     this.rootBlipId = rootBlipId;
+    this.rootThread = rootThread;
     this.creator = null;
     this.creationTime = -1;
     this.lastModifiedTime = -1;
@@ -148,6 +171,7 @@ public class Wavelet {
         operationQueue);
     this.tags = new Tags(Collections.<String>emptySet(), this, operationQueue);
     this.blips = blips;
+    this.threads = threads;
     this.operationQueue = operationQueue;
   }
 
@@ -165,10 +189,12 @@ public class Wavelet {
     this.lastModifiedTime = other.lastModifiedTime;
     this.title = other.title;
     this.rootBlipId = other.rootBlipId;
+    this.rootThread = other.rootThread;
     this.participants = other.participants;
     this.dataDocuments = other.dataDocuments;
     this.tags = other.tags;
     this.blips = other.blips;
+    this.threads = other.threads;
     this.robotAddress = other.robotAddress;
     this.operationQueue = operationQueue;
   }
@@ -329,6 +355,14 @@ public class Wavelet {
   }
 
   /**
+   * @return an instance of {@link BlipThread} that represents the root thread of
+   *     this wavelet.
+   */
+  public BlipThread getRootThread() {
+    return rootThread;
+  }
+
+  /**
    * Returns a blip with the given id.
    *
    * @return an instance of {@link Blip} that has the given blip id.
@@ -337,7 +371,6 @@ public class Wavelet {
     return blips.get(blipId);
   }
 
-
   /**
    * Returns all blips that are in this wavelet.
    *
@@ -345,6 +378,37 @@ public class Wavelet {
    */
   public Map<String, Blip> getBlips() {
     return blips;
+  }
+
+  /**
+   * Returns a thread with the given id.
+   *
+   * @param threadId the thread id.
+   * @return a thread that has the given thread id.
+   */
+  public BlipThread getThread(String threadId) {
+    if (threadId == null || threadId.isEmpty()) {
+      return getRootThread();
+    }
+    return threads.get(threadId);
+  }
+
+  /**
+   * Returns all threads that are in this wavelet.
+   *
+   * @return a map of threads in this wavelet, that is keyed by thread id.
+   */
+  public Map<String, BlipThread> getThreads() {
+    return threads;
+  }
+
+  /**
+   * Adds a thread to this wavelet.
+   *
+   * @param thread the thread to add.
+   */
+  protected void addThread(BlipThread thread) {
+    threads.put(thread.getId(), thread);
   }
 
   /**
@@ -421,10 +485,7 @@ public class Wavelet {
     if (initialContent == null || !initialContent.startsWith("\n")) {
       throw new IllegalArgumentException("Initial content should start with a newline character");
     }
-
-    Blip blip = operationQueue.appendBlipToWavelet(this, initialContent);
-    blips.put(blip.getBlipId(), blip);
-    return blip;
+    return operationQueue.appendBlipToWavelet(this, initialContent);
   }
 
   /**
@@ -445,11 +506,24 @@ public class Wavelet {
     operationQueue.deleteBlip(this, blipId);
     Blip removed = blips.remove(blipId);
 
-    // Remove the reference to this blip from its parent.
     if (removed != null) {
+      // Remove the blip from the parent blip.
       Blip parentBlip = removed.getParentBlip();
       if (parentBlip != null) {
         parentBlip.deleteChildBlipId(blipId);
+      }
+
+      // Remove the blip from the containing thread.
+      BlipThread thread = removed.getThread();
+      if (thread != null) {
+        thread.removeBlip(removed);
+      }
+
+      // If the containing thread is now empty, remove it from the parent blip
+      // and from the wavelet.
+      if (thread != null && parentBlip != null && thread.isEmpty()) {
+        parentBlip.removeThread(thread);
+        threads.remove(thread.getId());
       }
     }
   }
@@ -511,6 +585,7 @@ public class Wavelet {
     waveletData.setCreationTime(creationTime);
     waveletData.setLastModifiedTime(lastModifiedTime);
     waveletData.setRootBlipId(rootBlipId);
+    waveletData.setRootThread(rootThread);
     waveletData.setTitle(title);
 
     // Add tags.
@@ -549,13 +624,20 @@ public class Wavelet {
    * @return an instance of {@link Wavelet}.
    */
   public static Wavelet deserialize(OperationQueue operationQueue, Map<String, Blip> blips,
-      WaveletData waveletData) {
+      Map<String, BlipThread> threads, WaveletData waveletData) {
     WaveId waveId = WaveId.deserialise(waveletData.getWaveId());
     WaveletId waveletId = WaveletId.deserialise(waveletData.getWaveletId());
     String creator = waveletData.getCreator();
     long creationTime = waveletData.getCreationTime();
     long lastModifiedTime = waveletData.getLastModifiedTime();
     String rootBlipId = waveletData.getRootBlipId();
+
+    BlipThread originalRootThread = waveletData.getRootThread();
+    List<String> rootThreadBlipIds = originalRootThread == null ?
+        new ArrayList<String>() :
+        new ArrayList<String>(originalRootThread.getBlipIds());
+    BlipThread rootThread = new BlipThread("", -1, rootThreadBlipIds, blips);
+
     String title = waveletData.getTitle();
     Set<String> participants = new LinkedHashSet<String>(waveletData.getParticipants());
     Set<String> tags = new LinkedHashSet<String>(waveletData.getTags());
@@ -563,6 +645,25 @@ public class Wavelet {
     Map<String, String> roles = waveletData.getParticipantRoles();
 
     return new Wavelet(waveId, waveletId, creator, creationTime, lastModifiedTime, title,
-        rootBlipId, roles, participants, dataDocuments, tags, blips, operationQueue);
+        rootBlipId, rootThread, roles, participants, dataDocuments, tags, blips, threads,
+        operationQueue);
+  }
+
+  private void writeObject(ObjectOutputStream out) throws IOException {
+    serializedWaveId = waveId.serialise();
+    serializedWaveletId = waveletId.serialise();
+    out.defaultWriteObject();
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException {
+    try {
+      in.defaultReadObject();
+    } catch(ClassNotFoundException e) {
+      // Fatal.
+      throw new IOException("Incorrect serial versions" + e);
+    }
+
+    waveId = WaveId.deserialise(serializedWaveId);
+    waveletId = WaveletId.deserialise(serializedWaveletId);
   }
 }

@@ -27,6 +27,7 @@ public class Gadget extends Element {
 
   public static final String AUTHOR = "author";
   public static final String CATEGORY = "category";
+  public static final String IFRAME = "ifr";
   public static final String PREF = "pref";
   public static final String THUMBNAIL = "thumbnail";
   public static final String TITLE = "title";
@@ -84,6 +85,24 @@ public class Gadget extends Element {
    */
   public String getCategory() {
     return getProperty(CATEGORY);
+  }
+
+  /**
+   * Changes the cached IFrame source of the gadget.
+   *
+   * @param iframe the new cached gadget iframe source.
+   */
+  public void setIframe(String iframe) {
+    setProperty(IFRAME, iframe);
+  }
+
+  /**
+   * Returns the cached iframe source of the gadget.
+   *
+   * @return the cached iframe source of the gadget.
+   */
+  public String getIframe() {
+    return getProperty(IFRAME);
   }
 
   /**
@@ -188,6 +207,17 @@ public class Gadget extends Element {
    */
   public static Restriction restrictByCategory(String category) {
     return Restriction.of(CATEGORY, category);
+  }
+
+  /**
+   * Creates an instance of {@link Restriction} that can be used to search for
+   * gadget with the given cached iframe source.
+   *
+   * @param iframe the iframe source to filter.
+   * @return an instance of {@link Restriction}.
+   */
+  public static Restriction restrictByIframe(String iframe) {
+    return Restriction.of(IFRAME, iframe);
   }
 
   /**

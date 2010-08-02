@@ -109,7 +109,10 @@ public class JsonRpcConstant {
     DATADOC_VALUE("datadocValue", String.class),
     DATADOC_WRITEBACK("datadocWriteback", String.class),
     ELEMENT("element", Element.class),
+    FETCH_PROFILES_REQUEST("fetchProfilesRequest", FetchProfilesRequest.class),
+    FETCH_PROFILES_RESULT("fetchProfilesResult", FetchProfilesResult.class),
     INDEX("index", Integer.class),
+    LANGUAGE("language", String.class),
     MESSAGE("message", String.class),
     MODIFY_ACTION("modifyAction", DocumentModifyAction.class),
     MODIFY_HOW("modifyHow", String.class),
@@ -118,6 +121,7 @@ public class JsonRpcConstant {
     NEW_BLIP_ID("newBlipId", String.class),
     NUM_RESULTS("numResults", Integer.class),
     PARTICIPANT_ID("participantId", String.class),
+    PARTICIPANT_PROFILE("participantProfile", ParticipantProfile.class),
     PARTICIPANT_ROLE("participantRole", String.class),
     PROTOCOL_VERSION("protocolVersion", String.class),
     PROXYING_FOR("proxyingFor", String.class),
@@ -125,6 +129,7 @@ public class JsonRpcConstant {
     RANGE("range", Range.class),
     SEARCH_RESULTS("searchResults", SearchResult.class),
     STYLE_TYPE("styleType", String.class),
+    THREADS("threads", Map.class),
     WAVELET_DATA("waveletData", WaveletData.class),
     WAVELET_TITLE("waveletTitle", String.class);
 

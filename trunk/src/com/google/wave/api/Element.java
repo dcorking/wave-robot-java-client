@@ -15,6 +15,7 @@
 
 package com.google.wave.api;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,7 +25,7 @@ import java.util.Map;
  * properties of an element it can only interact with the specific types that
  * the element represents.
  */
-public class Element extends BlipContent {
+public class Element extends BlipContent implements Serializable {
 
   /** The type of an element. */
   private final ElementType type;

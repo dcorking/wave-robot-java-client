@@ -92,6 +92,16 @@ public class BlipData {
   private String waveletId;
 
   /**
+   * The inline and non-inline reply thread ids.
+   */
+  private List<String> replyThreadIds;
+
+  /**
+   * Get the thread to which this blip belongs.
+   */
+  private String threadId;
+
+  /**
    * Constructs an empty BlipData object.
    */
   public BlipData() {
@@ -102,6 +112,7 @@ public class BlipData {
     contributors = new ArrayList<String>();
     lastModifiedTime = -1L;
     version = -1L;
+    replyThreadIds = new ArrayList<String>();
   }
 
   /**
@@ -175,6 +186,8 @@ public class BlipData {
     parentBlipId = blip.getParentBlipId();
     waveId = blip.getWaveId();
     waveletId = blip.getWaveletId();
+    replyThreadIds = blip.getReplyThreadIds();
+    threadId = blip.getThreadId();
   }
 
   /**
@@ -437,5 +450,37 @@ public class BlipData {
 
   public void removeChildBlipId(String blipId) {
     childBlipIds.remove(blipId);
+  }
+
+  /**
+   * @return the inline and non-inline reply threads' ids.
+   */
+  public List<String> getReplyThreadIds() {
+    return replyThreadIds;
+  }
+
+  /**
+   * Sets the list of inline and non-inline reply threads' ids.
+   *
+   * @param replyThreadIds a list of ids of the reply threads.
+   */
+  public void setReplyThreadIds(List<String> replyThreadIds) {
+    this.replyThreadIds = replyThreadIds;
+  }
+
+  /**
+   * @return the id of the thread to which this blip belongs to.
+   */
+  public String getThreadId() {
+    return threadId;
+  }
+
+  /**
+   * Sets the id of the thread to which this blip belongs to.
+
+   * @param threadId the id of the parent thread.
+   */
+  public void setThreadId(String threadId) {
+    this.threadId = threadId;
   }
 }

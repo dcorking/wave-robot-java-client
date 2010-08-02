@@ -15,10 +15,12 @@
 
 package com.google.wave.api;
 
+import java.io.Serializable;
+
 /**
  * A class that models a range, that contains a start and end index.
  */
-public class Range {
+public class Range implements Serializable {
 
   /** Start of the range. */
   private final int start;
