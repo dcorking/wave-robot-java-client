@@ -81,9 +81,6 @@ public class OperationRequest {
 
   private final String method;
   private final String id;
-  private final String waveId;
-  private final String waveletId;
-  private final String blipId;
   private final Map<ParamsProperty, Object> parameters;
 
   /**
@@ -95,18 +92,18 @@ public class OperationRequest {
    * @param waveId the wave id to apply this operation to.
    * @param waveletId the wavelet id to apply this operation to.
    * @param blipId the blip id to apply this operation to.
-   * @param parameters additional parameters for this operation. See
+   * @param params additional parameters for this operation. See
    *     {@link ParamsProperty}.
    */
   public OperationRequest(String method, String id, String waveId, String waveletId, String blipId,
-      Parameter... parameters) {
+      Parameter... params) {
     this.method = method;
     this.id = id;
-    this.waveId = waveId;
-    this.waveletId = waveletId;
-    this.blipId = blipId;
-    this.parameters = new HashMap<ParamsProperty, Object>(parameters.length);
-    for (Parameter parameter : parameters) {
+    this.parameters = new HashMap<ParamsProperty, Object>(params.length + 3);
+    setWaveId(waveId);
+    setWaveletId(waveletId);
+    setBlipId(blipId);
+    for (Parameter parameter : params) {
       this.parameters.put(parameter.getKey(), parameter.getValue());
     }
   }
@@ -185,13 +182,31 @@ public class OperationRequest {
   }
 
   /**
+   * @param waveId to set
+   */
+  private void setWaveId(String waveId) {
+    if (waveId != null) {
+      parameters.put(ParamsProperty.WAVE_ID, waveId);
+    }
+  }
+
+  /**
    * Returns the wave id where this request should be invoked on. This might not
    * be applicable to all requests.
    *
    * @return the wave id.
    */
   public String getWaveId() {
-    return waveId;
+    return (String) getParameter(ParamsProperty.WAVE_ID);
+  }
+
+  /**
+   * @param waveletId to set
+   */
+  private void setWaveletId(String waveletId) {
+    if (waveletId != null) {
+      parameters.put(ParamsProperty.WAVELET_ID, waveletId);
+    }
   }
 
   /**
@@ -201,17 +216,26 @@ public class OperationRequest {
    * @return the wavelet id.
    */
   public String getWaveletId() {
-    return waveletId;
+    return (String) getParameter(ParamsProperty.WAVELET_ID);
   }
 
   /**
-   * Returns the blip id where this request should be invoked on. This might
-   * not be applicable to all requests.
+   * @param blipId to set
+   */
+  private void setBlipId(String blipId) {
+    if (blipId != null) {
+      parameters.put(ParamsProperty.BLIP_ID, blipId);
+    }
+  }
+
+  /**
+   * Returns the blip id where this request should be invoked on. This might not
+   * be applicable to all requests.
    *
    * @return the blip id.
    */
   public String getBlipId() {
-    return blipId;
+    return (String) getParameter(ParamsProperty.BLIP_ID);
   }
 
   /**
@@ -237,6 +261,6 @@ public class OperationRequest {
   @Override
   public String toString() {
     return String.format("{'method':'%s','id':'%s','waveId':'%s','waveletId':'%s','blipId':'%s'," +
-        "'parameters':%s}", method, id, waveId, waveletId, blipId, parameters);
+        "'parameters':%s}", method, id, getWaveId(), getWaveletId(), getBlipId(), parameters);
   }
 }
