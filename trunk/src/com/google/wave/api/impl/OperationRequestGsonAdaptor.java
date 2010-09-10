@@ -73,15 +73,6 @@ public class OperationRequestGsonAdaptor implements JsonSerializer<OperationRequ
     object.addProperty(RequestProperty.ID.key(), req.getId());
 
     JsonObject parameters = new JsonObject();
-    if (req.getWaveId() != null) {
-      parameters.addProperty(ParamsProperty.WAVE_ID.key(), req.getWaveId());
-    }
-    if (req.getWaveletId() != null) {
-      parameters.addProperty(ParamsProperty.WAVELET_ID.key(), req.getWaveletId());
-    }
-    if (req.getBlipId() != null) {
-      parameters.addProperty(ParamsProperty.BLIP_ID.key(), req.getBlipId());
-    }
     for (Entry<ParamsProperty, Object> entry : req.getParams().entrySet()) {
       if (entry.getValue() != null) {
         parameters.add(entry.getKey().key(), ctx.serialize(entry.getValue()));

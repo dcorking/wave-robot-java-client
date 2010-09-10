@@ -33,6 +33,7 @@ import com.google.wave.api.Line;
 
 import org.apache.commons.codec.binary.Base64;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -68,7 +69,11 @@ public class ElementGsonAdaptor implements JsonDeserializer<Element>,
       byte[] data = null;
       String encodedData = properties.get(Attachment.DATA);
       if (encodedData != null) {
-        data = Base64.decodeBase64(encodedData);
+        try {
+          data = Base64.decodeBase64(encodedData.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+          throw new JsonParseException("Couldn't convert to utf-8", e);
+        }
       }
       result = new Attachment(properties, data);
     } else if (type == ElementType.LINE) {
@@ -87,8 +92,13 @@ public class ElementGsonAdaptor implements JsonDeserializer<Element>,
     if (src.isAttachment()) {
       Attachment attachment = (Attachment) src;
       if (attachment.hasData()) {
-        String encodedData = Base64.encodeBase64String(attachment.getData());
-        properties.add(Attachment.DATA, new JsonPrimitive(encodedData));
+        byte[] encodedData = Base64.encodeBase64(attachment.getData());
+        try {
+          properties.add(Attachment.DATA, new JsonPrimitive(
+            new String(encodedData, "UTF-8")));
+        } catch (UnsupportedEncodingException e) {
+          // this shouldn't happen, so let it slide.
+        }
       }
     }
     for (Entry<String, String> entry : src.getProperties().entrySet()) {
