@@ -92,9 +92,9 @@ public class WaveService {
         }
       }
 
-      boolean doOutput = body != null &&
-          (HTTP_POST_METHOD.equalsIgnoreCase(request.method) ||
-              HTTP_PUT_METHOD.equalsIgnoreCase(request.method));
+      boolean doOutput =
+          body != null && (HTTP_POST_METHOD.equalsIgnoreCase(request.method)
+              || HTTP_PUT_METHOD.equalsIgnoreCase(request.method));
 
       if (doOutput) {
         conn.setDoOutput(true);
@@ -104,7 +104,7 @@ public class WaveService {
 
       if (doOutput) {
         // Send the request body.
-          out = new OutputStreamWriter(conn.getOutputStream(), UTF_8);
+        out = new OutputStreamWriter(conn.getOutputStream(), UTF_8);
         try {
           out.write(body);
           out.flush();
@@ -114,8 +114,8 @@ public class WaveService {
       }
 
       // Return the response stream.
-      return new HttpResponse(request.method, request.url, conn.getResponseCode(),
-          conn.getInputStream());
+      return new HttpResponse(
+          request.method, request.url, conn.getResponseCode(), conn.getInputStream());
     }
 
     /**
@@ -199,18 +199,22 @@ public class WaveService {
     /**
      * Constructor.
      *
-     * @param consumerKey the consumer key
+     * @param consumerKey the consumer key.
      * @param consumerSecret the consumer secret
      * @param rpcServerUrl the URL of the JSON-RPC request handler
      */
     public ConsumerData(String consumerKey, String consumerSecret, String rpcServerUrl) {
-      this.consumerKey = consumerKey;
+      String consumerKeyPrefix = "";
+      // NOTE(ljvderijk): Present for backwards capability.
+      if (RPC_URL.equals(rpcServerUrl) || SANDBOX_RPC_URL.equals(rpcServerUrl)) {
+        consumerKeyPrefix = "google.com:";
+      }
+      this.consumerKey = consumerKeyPrefix + consumerKey;
       this.consumerSecret = consumerSecret;
       this.rpcServerUrl = rpcServerUrl;
 
       userAuthenticated = false;
-      OAuthConsumer consumer = new OAuthConsumer(null,
-          OAUTH_CONSUMER_KEY_DOMAIN + ":" + consumerKey, consumerSecret, null);
+      OAuthConsumer consumer = new OAuthConsumer(null, consumerKey, consumerSecret, null);
       consumer.setProperty(OAuth.OAUTH_SIGNATURE_METHOD, OAuth.HMAC_SHA1);
       accessor = new OAuthAccessor(consumer);
     }
@@ -219,7 +223,7 @@ public class WaveService {
       this.consumerKey = accessor.consumer.consumerKey;
       this.consumerSecret = accessor.consumer.consumerSecret;
       this.accessor = accessor;
-      this.rpcServerUrl = rpcServerUrl;      
+      this.rpcServerUrl = rpcServerUrl;
       userAuthenticated = true;
     }
 
@@ -228,6 +232,13 @@ public class WaveService {
      */
     public String getConsumerKey() {
       return consumerKey;
+    }
+
+    /**
+     * @return the consumer secret used to sign the operations in the active mode.
+     */
+    public String getConsumerSecret() {
+      return consumerSecret;
     }
 
     /**
@@ -252,7 +263,6 @@ public class WaveService {
 
   private static final String JSON_MIME_TYPE = "application/json; charset=utf-8";
   private static final String OAUTH_BODY_HASH = "oauth_body_hash";
-  private static final String OAUTH_CONSUMER_KEY_DOMAIN = "google.com";
   private static final String POST = "POST";
   private static final String SHA_1 = "SHA-1";
   private static final String UTF_8 = "UTF-8";
@@ -309,49 +319,60 @@ public class WaveService {
   /**
    * Sets the OAuth related properties, including the consumer key and secret
    * that are used to sign the outgoing operations.
+   *
    * <p>
-   * This version of the method is for 2-legged OAuth, where the robot is not acting
-   * on behalf of a user.
+   * This version of the method is for 2-legged OAuth, where the robot is not
+   * acting on behalf of a user.
+   *
+   * <p>
+   * For the rpcServerUrl you can use:
+   * <ul>
+   * <li>https://www-opensocial.googleusercontent.com/api/rpc - for wave
+   * preview.
+   * <li>
+   * https://www-opensocial-sandbox.googleusercontent.com/api/rpc - for wave
+   * sandbox.
+   * </ul>
    *
    * @param consumerKey the consumer key.
    * @param consumerSecret the consumer secret.
    * @param rpcServerUrl the URL of the server that serves the JSON-RPC request.
-   *     <ul>
-   *       <li>https://www-opensocial.googleusercontent.com/api/rpc - for wave
-   *           preview.<li>
-   *       <li>https://www-opensocial-sandbox.googleusercontent.com/api/rpc -
-   *           for wave sandbox.</li>
-   *     </ul>
    */
   public void setupOAuth(String consumerKey, String consumerSecret, String rpcServerUrl) {
     if (consumerKey == null || consumerSecret == null || rpcServerUrl == null) {
-      throw new IllegalArgumentException("Consumer Key, Consumer Secret and RPCServerURL " +
-          "have to be non-null");
+      throw new IllegalArgumentException(
+          "Consumer Key, Consumer Secret and RPCServerURL " + "have to be non-null");
     }
     consumerDataMap.put(rpcServerUrl, new ConsumerData(consumerKey, consumerSecret, rpcServerUrl));
   }
 
   /**
-   * Sets the OAuth related properties that are used to sign the outgoing operations for 3-legged
-   * OAuth.
+   * Sets the OAuth related properties that are used to sign the outgoing
+   * operations for 3-legged OAuth.
+   *
    * <p>
-   * Performing the OAuth dance is not part of this interface - once you've
-   * done the dance, pass the constructed accessor and rpc endpoint into this method.
+   * Performing the OAuth dance is not part of this interface - once you've done
+   * the dance, pass the constructed accessor and rpc endpoint into this method.
+   *
    * <p>
-   * Ensure that the endpoint URL you pass in matches exactly the URL used to request an
-   * access token (including https vs http).
+   * Ensure that the endpoint URL you pass in matches exactly the URL used to
+   * request an access token (including https vs http).
+   *
+   *  For the rpcServerUrl you can use:
+   * <ul>
+   * <li>https://www-opensocial.googleusercontent.com/api/rpc - for wave
+   * preview.
+   * <li>
+   * https://www-opensocial-sandbox.googleusercontent.com/api/rpc - for wave
+   * sandbox.
+   * </ul>
    *
    * @param accessor the {@code OAuthAccessor} with access token and secret
-   * @param rpcServerUrl the endpoint URL of the server that serves the JSON-RPC request.
-   *     <ul>
-   *       <li>https://www-opensocial.googleusercontent.com/api/rpc - for wave
-   *           preview.<li>
-   *       <li>https://www-opensocial-sandbox.googleusercontent.com/api/rpc -
-   *           for wave sandbox.</li>
-   *     </ul>
+   * @param rpcServerUrl the endpoint URL of the server that serves the JSON-RPC
+   *        request.
    */
   public void setupOAuth(OAuthAccessor accessor, String rpcServerUrl) {
-  if (accessor == null || rpcServerUrl == null) {
+    if (accessor == null || rpcServerUrl == null) {
       throw new IllegalArgumentException("Accessor and RPCServerURL have to be non-null");
     }
     consumerDataMap.put(rpcServerUrl, new ConsumerData(accessor, rpcServerUrl));
@@ -366,12 +387,14 @@ public class WaveService {
    *
    * @throws OAuthException if it can't validate the request.
    */
-  public void validateOAuthRequest(String requestUrl, Map<String, String[]> requestParams,
-      String jsonBody, String rpcServerUrl) throws OAuthException {
+  public void validateOAuthRequest(
+      String requestUrl, Map<String, String[]> requestParams, String jsonBody, String rpcServerUrl)
+      throws OAuthException {
     ConsumerData consumerData = consumerDataMap.get(rpcServerUrl);
     if (consumerData == null) {
-      throw new IllegalArgumentException("There is no consumer key and secret associated " +
-          "with the given RPC URL " + rpcServerUrl);
+      throw new IllegalArgumentException(
+          "There is no consumer key and secret associated " + "with the given RPC URL "
+              + rpcServerUrl);
     }
 
     List<OAuth.Parameter> params = new ArrayList<OAuth.Parameter>();
@@ -388,8 +411,9 @@ public class WaveService {
       byte[] hash = md.digest(jsonBody.getBytes(UTF_8));
       String encodedHash = new String(Base64.encodeBase64(hash, false), UTF_8);
       if (!encodedHash.equals(message.getParameter(OAUTH_BODY_HASH))) {
-        throw new IllegalArgumentException("Body hash does not match. Expected: " + encodedHash
-            + ", provided: " + message.getParameter(OAUTH_BODY_HASH));
+        throw new IllegalArgumentException(
+            "Body hash does not match. Expected: " + encodedHash + ", provided: "
+                + message.getParameter(OAUTH_BODY_HASH));
       }
 
       OAuthAccessor accessor = consumerData.getAccessor();
@@ -412,10 +436,10 @@ public class WaveService {
    * @param wavelet the bundle that contains the operations to be submitted.
    * @param rpcServerUrl the active gateway to send the operations to.
    * @return a list of {@link JsonRpcResponse} that represents the responses
-   *     from the server for all operations that were submitted.
+   *         from the server for all operations that were submitted.
    *
-   * @throws IllegalStateException if this method is called prior to setting
-   *     the proper consumer key, secret, and handler URL.
+   * @throws IllegalStateException if this method is called prior to setting the
+   *         proper consumer key, secret, and handler URL.
    * @throws IOException if there is a problem submitting the operations.
    */
   public List<JsonRpcResponse> submit(Wavelet wavelet, String rpcServerUrl) throws IOException {
@@ -428,6 +452,7 @@ public class WaveService {
    * Returns an empty/blind stub of a wavelet with the given wave id and wavelet
    * id.
    *
+   * <p>
    * Call this method if you would like to apply wavelet-only operations
    * without fetching the wave first.
    *
@@ -449,9 +474,9 @@ public class WaveService {
    * @see #blindWavelet(WaveId, WaveletId)
    *
    * @param proxyForId the proxying information that should be set on the
-   *     operation queue.  Please note that this parameter should be properly
-   *     encoded to ensure that the resulting participant id is valid
-   *     (see {@link Util#checkIsValidProxyForId(String)} for more details).
+   *        operation queue. Please note that this parameter should be properly
+   *        encoded to ensure that the resulting participant id is valid (see
+   *        {@link Util#checkIsValidProxyForId(String)} for more details).
    */
   public Wavelet blindWavelet(WaveId waveId, WaveletId waveletId, String proxyForId) {
     return blindWavelet(waveId, waveletId, proxyForId, new HashMap<String, Blip>());
@@ -462,8 +487,8 @@ public class WaveService {
    *
    * @param blips a collection of blips that belong to this wavelet.
    */
-  public Wavelet blindWavelet(WaveId waveId, WaveletId waveletId, String proxyForId,
-      Map<String, Blip> blips) {
+  public Wavelet blindWavelet(
+      WaveId waveId, WaveletId waveletId, String proxyForId, Map<String, Blip> blips) {
     return blindWavelet(waveId, waveletId, proxyForId, blips, new HashMap<String, BlipThread>());
   }
 
@@ -491,12 +516,12 @@ public class WaveService {
    * {@link Wavelet#submitWith(Wavelet)} on the new wavelet.
    *
    * @param domain the domain to create the wavelet on. In general, this should
-   *     correspond to the domain of the incoming event wavelet, except when
-   *     the robot is calling this method outside of an event or when the server
-   *     is handling multiple domains.
+   *        correspond to the domain of the incoming event wavelet, except when
+   *        the robot is calling this method outside of an event or when the
+   *        server is handling multiple domains.
    * @param participants the initial participants on the wave. The robot, as the
-   *     creator of the wave, will be added by default. The order of the
-   *     participants will be preserved.
+   *        creator of the wave, will be added by default. The order of the
+   *        participants will be preserved.
    */
   public Wavelet newWave(String domain, Set<String> participants) {
     return newWave(domain, participants, null);
@@ -506,11 +531,11 @@ public class WaveService {
    * @see #newWave(String, Set)
    *
    * @param proxyForId the proxy id that should be used to create the new wave.
-   *     If specified, the creator of the wave would be
-   *     robotid+<proxyForId>@appspot.com. Please note that this parameter
-   *     should be properly encoded to ensure that the resulting participant id
-   *     is valid (see {@link Util#checkIsValidProxyForId(String)} for more
-   *     details).
+   *        If specified, the creator of the wave would be
+   *        robotid+<proxyForId>@appspot.com. Please note that this parameter
+   *        should be properly encoded to ensure that the resulting participant
+   *        id is valid (see {@link Util#checkIsValidProxyForId(String)} for
+   *        more details).
    */
   public Wavelet newWave(String domain, Set<String> participants, String proxyForId) {
     return newWave(domain, participants, "", proxyForId);
@@ -520,7 +545,7 @@ public class WaveService {
    * @see #newWave(String, Set, String)
    *
    * @param msg the message that will be passed back to the robot when
-   *     WAVELET_CREATED event is fired as a result of this operation.
+   *        WAVELET_CREATED event is fired as a result of this operation.
    */
   public Wavelet newWave(String domain, Set<String> participants, String msg, String proxyForId) {
     Util.checkIsValidProxyForId(proxyForId);
@@ -531,14 +556,15 @@ public class WaveService {
    * @see #newWave(String, Set, String, String)
    *
    * @param rpcServerUrl if specified, this operation will be submitted
-   *     immediately to this active gateway, that will return immediately the
-   *     actual wave id, the id of the root wavelet, and id of the root blip.
+   *        immediately to this active gateway, that will return immediately the
+   *        actual wave id, the id of the root wavelet, and id of the root blip.
    *
    * @throws IOException if there is a problem submitting the operation to the
-   *      server, when {@code submit} is {@code true}.
+   *         server, when {@code submit} is {@code true}.
    */
-  public Wavelet newWave(String domain, Set<String> participants, String msg, String proxyForId,
-      String rpcServerUrl) throws IOException {
+  public Wavelet newWave(
+      String domain, Set<String> participants, String msg, String proxyForId, String rpcServerUrl)
+      throws IOException {
     Util.checkIsValidProxyForId(proxyForId);
     OperationQueue opQueue = new OperationQueue(proxyForId);
     Wavelet newWavelet = opQueue.createWavelet(domain, participants, msg);
@@ -551,8 +577,8 @@ public class WaveService {
         throw new IOException(response.getErrorMessage());
       }
       WaveId waveId = WaveId.deserialise((String) response.getData().get(ParamsProperty.WAVE_ID));
-      WaveletId waveletId = WaveletId.deserialise((String) response.getData().get(
-          ParamsProperty.WAVELET_ID));
+      WaveletId waveletId =
+          WaveletId.deserialise((String) response.getData().get(ParamsProperty.WAVELET_ID));
       String rootBlipId = (String) response.getData().get(ParamsProperty.BLIP_ID);
 
       Map<String, Blip> blips = new HashMap<String, Blip>();
@@ -563,8 +589,8 @@ public class WaveService {
       blipIds.add(rootBlipId);
       BlipThread rootThread = new BlipThread("", -1, blipIds, blips);
 
-      newWavelet = new Wavelet(waveId, waveletId, rootBlipId, rootThread, participants, roles,
-          blips, threads, opQueue);
+      newWavelet = new Wavelet(waveId, waveletId, rootBlipId, rootThread, participants,
+          roles, blips, threads, opQueue);
       blips.put(rootBlipId, new Blip(rootBlipId, "", null, "", newWavelet));
     }
     return newWavelet;
@@ -573,7 +599,7 @@ public class WaveService {
   /**
    * Fetches a wavelet using the active API.
    *
-   * The returned wavelet contains a snapshot of the state of the wavelet at
+   *  The returned wavelet contains a snapshot of the state of the wavelet at
    * that point. It can be used to modify the wavelet, but the wavelet might
    * change in between, so treat carefully.
    *
@@ -597,12 +623,13 @@ public class WaveService {
    * @see #fetchWavelet(WaveId, WaveletId, String)
    *
    * @param proxyForId the proxy id that should be used to fetch this wavelet.
-   *     Please note that this parameter should be properly encoded to ensure
-   *     that the resulting participant id is valid (see
-   *     {@link Util#checkIsValidProxyForId(String)} for more details).
+   *        Please note that this parameter should be properly encoded to ensure
+   *        that the resulting participant id is valid (see
+   *        {@link Util#checkIsValidProxyForId(String)} for more details).
    */
-  public Wavelet fetchWavelet(WaveId waveId, WaveletId waveletId, String proxyForId,
-      String rpcServerUrl) throws IOException {
+  public Wavelet fetchWavelet(
+      WaveId waveId, WaveletId waveletId, String proxyForId, String rpcServerUrl)
+      throws IOException {
     Util.checkIsValidProxyForId(proxyForId);
     OperationQueue opQueue = new OperationQueue(proxyForId);
     opQueue.fetchWavelet(waveId, waveletId);
@@ -623,19 +650,19 @@ public class WaveService {
 
     // Deserialize threads.
     @SuppressWarnings("unchecked")
-    Map<String, BlipThread> tempThreads = (Map<String, BlipThread>) response.getData().get(
-        ParamsProperty.THREADS);
-    for(Map.Entry<String, BlipThread> entry : tempThreads.entrySet()) {
+    Map<String, BlipThread> tempThreads =
+        (Map<String, BlipThread>) response.getData().get(ParamsProperty.THREADS);
+    for (Map.Entry<String, BlipThread> entry : tempThreads.entrySet()) {
       BlipThread thread = entry.getValue();
-      threads.put(entry.getKey(), new BlipThread(thread.getId(), thread.getLocation(),
-          thread.getBlipIds(), blips));
+      threads.put(entry.getKey(),
+          new BlipThread(thread.getId(), thread.getLocation(), thread.getBlipIds(), blips));
     }
 
     // Deserialize blips.
     @SuppressWarnings("unchecked")
-    Map<String, BlipData> blipDatas = (Map<String, BlipData>) response.getData().get(
-        ParamsProperty.BLIPS);
-    for(Map.Entry<String, BlipData> entry : blipDatas.entrySet()) {
+    Map<String, BlipData> blipDatas =
+        (Map<String, BlipData>) response.getData().get(ParamsProperty.BLIPS);
+    for (Map.Entry<String, BlipData> entry : blipDatas.entrySet()) {
       blips.put(entry.getKey(), Blip.deserialize(opQueue, wavelet, entry.getValue()));
     }
 
@@ -651,7 +678,7 @@ public class WaveService {
 
   /**
    * @return {@code true} if this service object contains a consumer key and
-   *     secret for the given RPC server URL.
+   *         secret for the given RPC server URL.
    */
   protected boolean hasConsumerData(String rpcServerUrl) {
     return consumerDataMap.containsKey(rpcServerUrl);
@@ -663,10 +690,10 @@ public class WaveService {
    * @param opQueue the operation queue to be submitted.
    * @param rpcServerUrl the active gateway to send the operations to.
    * @return a list of {@link JsonRpcResponse} that represents the responses
-   *     from the server for all operations that were submitted.
+   *         from the server for all operations that were submitted.
    *
-   * @throws IllegalStateException if this method is called prior to setting
-   *     the proper consumer key, secret, and handler URL.
+   * @throws IllegalStateException if this method is called prior to setting the
+   *         proper consumer key, secret, and handler URL.
    * @throws IOException if there is a problem submitting the operations.
    */
   private List<JsonRpcResponse> makeRpc(OperationQueue opQueue, String rpcServerUrl)
@@ -677,14 +704,14 @@ public class WaveService {
 
     ConsumerData consumerDataObj = consumerDataMap.get(rpcServerUrl);
     if (consumerDataObj == null) {
-      throw new IllegalStateException("Consumer key, consumer secret, and  JSON-RPC server URL " +
-          "have to be set first, by calling AbstractRobot.setupOAuth(), before invoking " +
-          "AbstractRobot.submit().");
+      throw new IllegalStateException("Consumer key, consumer secret, and  JSON-RPC server URL "
+          + "have to be set first, by calling AbstractRobot.setupOAuth(), before invoking "
+          + "AbstractRobot.submit().");
     }
 
     opQueue.notifyRobotInformation(PROTOCOL_VERSION, version);
-    String json = SERIALIZER.toJson(opQueue.getPendingOperations(),
-        GsonFactory.OPERATION_REQUEST_LIST_TYPE);
+    String json =
+        SERIALIZER.toJson(opQueue.getPendingOperations(), GsonFactory.OPERATION_REQUEST_LIST_TYPE);
 
     try {
       InputStream bodyStream;
@@ -695,20 +722,20 @@ public class WaveService {
         throw new IllegalStateException(e);
       }
       if (!consumerDataObj.isUserAuthenticated()) {
-        String url = createOAuthUrlString(json, consumerDataObj.getRpcServerUrl(),
-            consumerDataObj.getAccessor());
+        String url = createOAuthUrlString(
+            json, consumerDataObj.getRpcServerUrl(), consumerDataObj.getAccessor());
         LOG.info("JSON request to be sent: " + json);
         HttpMessage request = new HttpMessage("POST", new URL(url), bodyStream);
-        request.headers.add(new SimpleEntry<String, String>(HttpMessage.CONTENT_TYPE,
-            JSON_MIME_TYPE));
+        request.headers.add(
+            new SimpleEntry<String, String>(HttpMessage.CONTENT_TYPE, JSON_MIME_TYPE));
         request.headers.add(new SimpleEntry<String, String>("oauth_version", "1.0"));
-        responseStream = httpFetcher.execute(request,
-            Collections.<String, Object>emptyMap()).getBody();
+        responseStream =
+            httpFetcher.execute(request, Collections.<String, Object>emptyMap()).getBody();
       } else {
         OAuthAccessor accessor = consumerDataObj.getAccessor();
         OAuthMessage message = accessor.newRequestMessage("POST", rpcServerUrl, null, bodyStream);
-        message.getHeaders().add(new SimpleEntry<String, String>(HttpMessage.CONTENT_TYPE,
-            "application/json"));
+        message.getHeaders().add(
+            new SimpleEntry<String, String>(HttpMessage.CONTENT_TYPE, "application/json"));
         message.getHeaders().add(new SimpleEntry<String, String>("oauth_version", "1.0"));
         OAuthClient client = new OAuthClient(httpFetcher);
         responseStream = client.invoke(message, net.oauth.ParameterStyle.BODY).getBodyAsStream();
@@ -719,8 +746,7 @@ public class WaveService {
 
       List<JsonRpcResponse> responses = null;
       if (responseString.startsWith("[")) {
-        responses = SERIALIZER.fromJson(responseString,
-            GsonFactory.JSON_RPC_RESPONSE_LIST_TYPE);
+        responses = SERIALIZER.fromJson(responseString, GsonFactory.JSON_RPC_RESPONSE_LIST_TYPE);
       } else {
         responses = new ArrayList<JsonRpcResponse>(1);
         responses.add(SERIALIZER.fromJson(responseString, JsonRpcResponse.class));
@@ -739,27 +765,28 @@ public class WaveService {
    * Creates a URL that contains the necessary OAuth query parameters for the
    * given JSON string.
    *
+   * The required OAuth parameters are:
+   * <ul>
+   * <li>oauth_body_hash</li>
+   * <li>oauth_consumer_key</li>
+   * <li>oauth_signature_method</li>
+   * <li>oauth_timestamp</li>
+   * <li>oauth_nonce</li>
+   * <li>oauth_version</li>
+   * <li>oauth_signature</li>
+   * </ul>
+   *
    * @param jsonBody the JSON string to construct the URL from.
    * @param rpcServerUrl the URL of the handler that services the JSON-RPC
-   *     request.
+   *        request.
    * @param accessor the OAuth accessor used to create the signed string.
-   *
-   * @return a URL for the given JSON string, and the required OAuth parameters:
-   *     <ul>
-   *       <li>oauth_body_hash</li>
-   *       <li>oauth_consumer_key</li>
-   *       <li>oauth_signature_method</li>
-   *       <li>oauth_timestamp</li>
-   *       <li>oauth_nonce</li>
-   *       <li>oauth_version</li>
-   *       <li>oauth_signature</li>
-   *     </ul>
+   * @return a URL for the given JSON string, and the required OAuth parameters.
    */
-  public static String createOAuthUrlString(String jsonBody, String rpcServerUrl,
-      OAuthAccessor accessor)
+  public static String createOAuthUrlString(
+      String jsonBody, String rpcServerUrl, OAuthAccessor accessor)
       throws IOException, URISyntaxException, OAuthException {
-    OAuthMessage message = new OAuthMessage(POST, rpcServerUrl,
-        Collections.<SimpleEntry<String, String>>emptyList());
+    OAuthMessage message =
+        new OAuthMessage(POST, rpcServerUrl, Collections.<SimpleEntry<String, String>>emptyList());
 
     // Compute the hash of the body.
     byte[] rawBody = jsonBody.getBytes(UTF_8);
