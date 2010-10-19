@@ -132,6 +132,7 @@ public class BlipData {
     this.contributors = new ArrayList<String>();
     this.waveId = waveId;
     this.waveletId = waveletId;
+    this.blipId = blipId;
 
     // Make sure that initial content is valid, and starts with newline.
     if (initialContent == null || initialContent.isEmpty()) {

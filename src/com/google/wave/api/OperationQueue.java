@@ -587,7 +587,7 @@ public class OperationQueue implements Serializable {
    * @param capabilitiesHash the capabilities hash of the robot.
    */
   public void notifyRobotInformation(ProtocolVersion protocolVersion, String capabilitiesHash) {
-    prependOperation(OperationType.ROBOT_NOTIFY_CAPABILITIES_HASH, null, null, null,
+    prependOperation(OperationType.ROBOT_NOTIFY, null, null, null,
         Parameter.of(ParamsProperty.PROTOCOL_VERSION, protocolVersion.getVersionString()),
         Parameter.of(ParamsProperty.CAPABILITIES_HASH, capabilitiesHash));
   }
