@@ -20,6 +20,7 @@ import com.google.wave.api.impl.DocumentModifyQuery;
 import com.google.wave.api.impl.WaveletData;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -131,7 +132,11 @@ public class JsonRpcConstant {
     STYLE_TYPE("styleType", String.class),
     THREADS("threads", Map.class),
     WAVELET_DATA("waveletData", WaveletData.class),
-    WAVELET_TITLE("waveletTitle", String.class);
+    WAVELET_TITLE("waveletTitle", String.class),
+    RAW_DELTAS_FROM_VERSION("rawDeltasFromVersion", Long.class),
+    RETURN_RAW_SNAPSHOT("returnRawSnapshot", Boolean.class),
+    RAW_SNAPSHOT("rawSnapshot", List.class),
+    RAW_DELTAS("rawDeltas", List.class);
 
     private static final Logger LOG = Logger.getLogger(ParamsProperty.class.getName());
 
