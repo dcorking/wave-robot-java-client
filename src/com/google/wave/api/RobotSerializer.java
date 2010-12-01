@@ -105,7 +105,7 @@ public class RobotSerializer {
    *     the given {@code jsonString}
    */
   public <T> T deserialize(String jsonString, Type type, ProtocolVersion protocolVersion) {
-    return getGson(protocolVersion).fromJson(jsonString, type);
+    return getGson(protocolVersion).<T>fromJson(jsonString, type);
   }
 
   /**

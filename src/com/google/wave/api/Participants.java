@@ -153,9 +153,30 @@ public class Participants implements Set<String>, Serializable {
     return retval;
   }
 
+  /**
+   * Remove the given participant id if it exist.
+   *
+   * @param participantId the id of the participant that will be removed.
+   * @return {@code true} if the given participant id does exist in the set
+   *     of participants, which means that the
+   *     {@code wavelet.removeParticipant()} has been dequeued. Otherwise, returns
+   *     {@code false}.
+   */
   @Override
-  public boolean remove(Object o) {
-    throw new UnsupportedOperationException();
+  public boolean remove(Object oParticipantId) {
+    
+    if(!(oParticipantId instanceof String)) {
+      throw new IllegalArgumentException("ParticipantId must be a string.");
+    }
+    String participantId = (String) oParticipantId;
+    
+    if (!participants.contains(participantId)) {
+      return false;
+    }
+
+    operationQueue.removeParticipantFromWavelet(wavelet, participantId);
+    participants.remove(participantId);
+    return true;
   }
 
   @Override

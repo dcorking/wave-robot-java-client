@@ -66,6 +66,9 @@ public class JsonRpcResponseGsonAdaptor implements JsonDeserializer<JsonRpcRespo
         Object object = null;
         if (parameterType == ParamsProperty.BLIPS) {
           object = context.deserialize(parameter.getValue(), GsonFactory.BLIP_MAP_TYPE);
+        } else if (parameterType == ParamsProperty.PARTICIPANTS_ADDED || 
+            parameterType == ParamsProperty.PARTICIPANTS_REMOVED) {
+          object = context.deserialize(parameter.getValue(), GsonFactory.PARTICIPANT_LIST_TYPE);
         } else if (parameterType == ParamsProperty.THREADS) {
           object = context.deserialize(parameter.getValue(), GsonFactory.THREAD_MAP_TYPE);
         } else {

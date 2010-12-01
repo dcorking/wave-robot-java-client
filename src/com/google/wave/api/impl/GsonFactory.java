@@ -45,6 +45,7 @@ import java.util.Map.Entry;
 public class GsonFactory {
 
   public static final Type BLIP_MAP_TYPE = new TypeToken<Map<String, BlipData>>(){}.getType();
+  public static final Type PARTICIPANT_LIST_TYPE = new TypeToken<List<String>>(){}.getType();
   public static final Type THREAD_MAP_TYPE = new TypeToken<Map<String, BlipThread>>(){}.getType();
   public static final Type STRING_MAP_TYPE = new TypeToken<Map<String, String>>(){}.getType();
   public static final Type OPERATION_REQUEST_LIST_TYPE = new TypeToken<List<OperationRequest>>(){}
