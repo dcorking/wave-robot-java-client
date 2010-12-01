@@ -169,6 +169,17 @@ public class OperationQueue implements Serializable {
   }
 
   /**
+   * Removes a participant from a wavelet.
+   *
+   * @param wavelet the wavelet that the participant should be removed from.
+   * @param participantId the id of the participant to be removed.
+   */
+  public void removeParticipantFromWavelet(Wavelet wavelet, String participantId) {
+    appendOperation(OperationType.WAVELET_REMOVE_PARTICIPANT_NEWSYNTAX, wavelet,
+        Parameter.of(ParamsProperty.PARTICIPANT_ID, participantId));
+  }
+  
+  /**
    * Creates a new wavelet.
    *
    * @param domain the domain to create the wavelet in.

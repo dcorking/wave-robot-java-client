@@ -124,6 +124,8 @@ public class JsonRpcConstant {
     PARTICIPANT_ID("participantId", String.class),
     PARTICIPANT_PROFILE("participantProfile", ParticipantProfile.class),
     PARTICIPANT_ROLE("participantRole", String.class),
+    PARTICIPANTS_ADDED("participantsAdded", List.class),
+    PARTICIPANTS_REMOVED("participantsRemoved", List.class),
     PROTOCOL_VERSION("protocolVersion", String.class),
     PROXYING_FOR("proxyingFor", String.class),
     QUERY("query", String.class),
